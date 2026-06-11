@@ -112,7 +112,7 @@ def handle_terminar_pedido(messages, data, telefono, session_context, supabase_c
 
     # DEBUG TEMPORAL
     import redis as redis_lib
-    r = redis_lib.from_url(os.getenv("REDIS_URL"))
+    r = redis_lib.from_url(os.getenv("REDIS_HOST"))
     key = f"orden_temporal:{telefono}"
     raw = r.get(key)
     ttl = r.ttl(key)
