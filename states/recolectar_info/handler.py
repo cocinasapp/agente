@@ -8,6 +8,7 @@ from chat_history import (
 )
 from db import DBCA
 from dotenv import load_dotenv
+from logger_utils import write_log
 from states.generic import get_username
 from states.recolectar_info.prompts import (
     PROMPT_EXTRAER_INFO,

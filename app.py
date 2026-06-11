@@ -2,12 +2,12 @@
 import os, uvicorn
 from db import DBCA
 from dotenv import load_dotenv
+from logger_utils import write_log
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from logger_config import setup_logging
 from procesa_mensajes import procesar_mensajes_entrantes
-from supabase_utils import write_log
 
 load_dotenv()
 setup_logging()

@@ -1,11 +1,10 @@
 
 import logging
-
+from logger_utils import write_log
 from states.generic import get_username
 from states.comensal.handler import handle_comensal
 from states.new.prompts import CAT_INTENTION, PROMPT_INFOMENU, PROMPT_ATTENTION
 from states.shared_prompts import CONTEXT
-from supabase_utils import write_log
 from utils_llm import llamar_llm
 
 logger = logging.getLogger(__name__)

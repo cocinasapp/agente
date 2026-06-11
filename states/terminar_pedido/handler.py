@@ -1,4 +1,7 @@
 
+
+import logging, os
+
 from chat_history import (
     delete_orden_temporal, 
     save_estado_entrega, 
@@ -9,24 +12,17 @@ from chat_history import (
 from db import DBCA
 from dotenv import load_dotenv
 from utils_llm import llamar_llm
-
-import logging, os
-
+from logger_utils import write_log
 from states.generic import (
     get_username, 
     persistir_pedido, 
     rehidratar_orden_desde_supabase
 )
 from states.generic import info_esta_completa
-
 from states.shared_prompts import CONTEXT
-
 from states.terminar_pedido.prompts import PROMPT_ATTENTION, PROMPT_ATTENTION_MODIFICACION
-
 from states.terminar_pedido.prompts import CAT_INTENTION_TERMINAR_PEDIDO
 from states.pedido.handler import handle_pedido
-
-from supabase_utils import write_log
 
 load_dotenv()
 

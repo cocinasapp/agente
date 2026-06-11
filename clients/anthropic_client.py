@@ -2,7 +2,7 @@
 import logging, os
 from anthropic import Anthropic
 from dotenv import load_dotenv
-from supabase_utils import write_log
+from logger_utils import write_log
 
 load_dotenv()
 

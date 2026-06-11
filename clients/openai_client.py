@@ -1,8 +1,8 @@
 
 import logging, os, sys
 from dotenv import load_dotenv
+from logger_utils import write_log
 from openai import OpenAI
-from supabase_utils import write_log
 
 load_dotenv()
 

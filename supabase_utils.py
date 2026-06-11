@@ -125,38 +125,39 @@ def update_notificacion_opt_in(telefono: str, order_id: str, producto: str, acep
     logger.debug("Opt_in actualizado | telefono: %s | order_id: %s | acepto: %s", telefono, order_id, acepto)
 
 # ========== ========== WRITE LOG --- FUNCION ORIGINAL SINCRONA ========== ==========
-def write_log_orig(telefono: str, etiqueta: str, mensaje: str, nivel: str = "info"):
-    try:
-        # supabase_client.table("logs").insert({
-        #     "telefono": telefono,
-        #     "nivel": nivel,
-        #     "etiqueta": etiqueta,
-        #     "mensaje": str(mensaje)
-        # }).execute()
-        return 
-    except Exception as e:
-        logger.error("Error escribiendo log | telefono: %s | etiqueta: %s | error: %s", telefono, etiqueta, e)
-        print(f"❌ Error escribiendo log: {e}")  # fallback silencioso
+# def write_log_orig(telefono: str, etiqueta: str, mensaje: str, nivel: str = "info"):
+#     try:
+#         # supabase_client.table("logs").insert({
+#         #     "telefono": telefono,
+#         #     "nivel": nivel,
+#         #     "etiqueta": etiqueta,
+#         #     "mensaje": str(mensaje)
+#         # }).execute()
+#         return 
+#     except Exception as e:
+#         logger.error("Error escribiendo log | telefono: %s | etiqueta: %s | error: %s", telefono, etiqueta, e)
+#         print(f"❌ Error escribiendo log: {e}")  # fallback silencioso
 
-def write_log(telefono: str, etiqueta: str, mensaje: str, nivel: str = "info"):
-    try:
-        loop = asyncio.get_running_loop()
-        loop.create_task(_persist_log(telefono, etiqueta, mensaje, nivel))
-    except RuntimeError:
-        # Contexto sync puro (startup, inicialización) — skip silencioso
-        pass
 
-async def _persist_log(telefono: str, etiqueta: str, mensaje: str, nivel: str):
-    try:
-        await supabase_client.table("logs").insert({
-            "telefono": telefono,
-            "nivel": nivel,
-            "etiqueta": etiqueta,
-            "mensaje": str(mensaje)
-        }).execute()
+# def write_log(telefono: str, etiqueta: str, mensaje: str, nivel: str = "info"):
+#     try:
+#         loop = asyncio.get_running_loop()
+#         loop.create_task(_persist_log(telefono, etiqueta, mensaje, nivel))
+#     except RuntimeError:
+#         # Contexto sync puro (startup, inicialización) — skip silencioso
+#         pass
 
-    except Exception as e:
-        print(f"❌ Error persistiendo log: {e}")
+# async def _persist_log(telefono: str, etiqueta: str, mensaje: str, nivel: str):
+#     try:
+#         await supabase_client.table("logs").insert({
+#             "telefono": telefono,
+#             "nivel": nivel,
+#             "etiqueta": etiqueta,
+#             "mensaje": str(mensaje)
+#         }).execute()
+
+#     except Exception as e:
+#         print(f"❌ Error persistiendo log: {e}")
 
 def borrar_conversaciones_usuario(telefono: str):
     try:

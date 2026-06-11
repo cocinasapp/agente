@@ -13,7 +13,8 @@ from chat_history import (
 from clients.redis_client import redis_client
 from datetime import datetime
 from dotenv import load_dotenv
-from supabase_utils import set_session_context, upsert_usuario, write_log
+from logger_utils import write_log
+from supabase_utils import set_session_context, upsert_usuario
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

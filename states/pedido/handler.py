@@ -6,7 +6,7 @@ from chat_history import (
 )
 from db import DBCA
 from dotenv import load_dotenv
-
+from logger_utils import write_log
 from states.pedido.prompts import (
     PROMPT_EXTRAER_ORDEN,
     PROMPT_EXTRAER_EDICION,
@@ -26,7 +26,6 @@ from states.generic import (
 )
 from states.shared_prompts import CONTEXT
 from states.generic import que_falta
-from supabase_utils import write_log
 from utils_llm import llamar_llm, empty_placeholders
 
 load_dotenv()

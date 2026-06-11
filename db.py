@@ -5,8 +5,8 @@ from clients.supabase_client import supabase_client
 from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
+from logger_utils import write_log
 from supabase import create_client, Client
-from supabase_utils import write_log
 from utils_llm import empty_placeholders
 
 logger = logging.getLogger(__name__)

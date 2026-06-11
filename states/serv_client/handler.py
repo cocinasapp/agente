@@ -1,7 +1,7 @@
 
+from logger_utils import write_log
 from states.serv_client.prompts import PROMPT_EXECUTIVE
 from states.shared_prompts import CONTEXT
-from supabase_utils import write_log
 from utils_llm import llamar_llm, get_datetime_mexico
 
 def handle_serv_client(messages, data, telefono, session_context):

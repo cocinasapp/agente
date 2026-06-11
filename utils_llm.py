@@ -4,7 +4,7 @@ from clients.anthropic_client import anthropic_client
 from clients.openai_client import openai_client
 from datetime import datetime
 from dotenv import load_dotenv
-from supabase_utils import write_log
+from logger_utils import write_log
 
 load_dotenv()
 
