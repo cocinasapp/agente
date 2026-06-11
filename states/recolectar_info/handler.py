@@ -17,7 +17,6 @@ from states.recolectar_info.prompts import (
 )
 from states.shared_prompts import CONTEXT
 from states.generic import info_esta_completa, que_falta_info
-from supabase_utils import write_log
 from utils_llm import llamar_llm
 
 load_dotenv()

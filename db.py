@@ -6,7 +6,8 @@ from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
 from logger_utils import write_log
-from supabase import create_client, Client
+# from supabase import create_client, Client
+from supabase import Client
 from utils_llm import empty_placeholders
 
 logger = logging.getLogger(__name__)
