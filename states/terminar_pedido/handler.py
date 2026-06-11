@@ -108,6 +108,16 @@ def handle_terminar_pedido(messages, data, telefono, session_context, supabase_c
     # ── Flujo normal: persistir pedido ────────────────────────────────────────
     orden_temporal = get_orden_temporal(telefono)
     # breakpoint()
+    orden_temporal = get_orden_temporal(telefono)
+
+    # DEBUG TEMPORAL
+    import redis as redis_lib
+    r = redis_lib.from_url(os.getenv("REDIS_URL"))
+    key = f"orden_temporal:{telefono}"
+    raw = r.get(key)
+    ttl = r.ttl(key)
+    logger.error("DEBUG Redis | key: %s | raw: %s | ttl: %s", key, raw, ttl)
+    # FIN DEBUG
     info_entrega = session_context.get("info_entrega", {})
 
     if not orden_temporal or not info_esta_completa(info_entrega):
