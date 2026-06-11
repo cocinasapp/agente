@@ -1,5 +1,4 @@
 
-
 import logging, os
 
 from chat_history import (
@@ -101,23 +100,16 @@ def handle_terminar_pedido(messages, data, telefono, session_context, supabase_c
             logger.info("Pedido congelado | telefono: %s | pedido_grupo: %s", telefono, pedido_grupo)
             write_log(telefono, "pedido_congelado", f"Pedido congelado para pedido grupo {pedido_grupo} mientras se procesa modificación", nivel="info")
         session_context["pedido_grupo_modificando"] = pedido_grupo
-        
+
         # Delegar a handle_pedido — caso equivalente al flujo normal
         return handle_pedido(messages, data, telefono, session_context, supabase_client)
 
     # ── Flujo normal: persistir pedido ────────────────────────────────────────
-    orden_temporal = get_orden_temporal(telefono)
+    # orden_temporal = get_orden_temporal(telefono)
+    orden_temporal = session_context.get("orden") or get_orden_temporal(telefono)
     # breakpoint()
     orden_temporal = get_orden_temporal(telefono)
-
-    # DEBUG TEMPORAL
-    import redis as redis_lib
-    r = redis_lib.from_url(os.getenv("REDIS_HOST"))
-    key = f"orden_temporal:{telefono}"
-    raw = r.get(key)
-    ttl = r.ttl(key)
-    logger.error("DEBUG Redis | key: %s | raw: %s | ttl: %s", key, raw, ttl)
-    # FIN DEBUG
+    
     info_entrega = session_context.get("info_entrega", {})
 
     if not orden_temporal or not info_esta_completa(info_entrega):
