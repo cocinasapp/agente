@@ -200,18 +200,25 @@ REGLAS ESTRICTAS:
 - En caso de duda, devuelve agrega
 """
 
-PROMPT_EXTRAER_EDICION = f"""
+def PROMPT_EXTRAER_EDICION(menu_data: dict) -> str:
+    menu = menu_data.get('menu', {})
+    campos = list(menu.keys())
+    menu_str = ""
+    for tiempo, platillos in menu.items():
+        nombres = [p['platillo'] for p in platillos]
+        menu_str += f"- {tiempo}: {', '.join(nombres)}\n"
+    campos_lines = "\n".join(f"- {c}: lista de platillos de {c} a eliminar (si no mencionó usa null)" for c in campos)
+    return f"""
 Eres un extractor de datos para una cocina económica llamada {business_name}.
 
 Tu ÚNICO objetivo es extraer los platillos que el cliente quiere ELIMINAR de su orden del último mensaje y devolverlos en JSON válido.
 
 El menú disponible es:
 {menu_str}
-
 Debes devolver UN ÚNICO objeto JSON donde cada tiempo es una key con una lista de platillos a eliminar.
 
 Campos:
-{chr(10).join(f'- {campo}: lista de platillos de {campo} a eliminar (si no mencionó usa null)' for campo in campos_platillos_validos)}
+{campos_lines}
 - extra_1: primer adicional a eliminar (si aplica, si no usa null)
 - extra_2: segundo adicional a eliminar (si aplica, si no usa null)
 - extra_3: tercer adicional a eliminar (si aplica, si no usa null)
@@ -232,14 +239,20 @@ Cliente dice "ya no quiero el arroz":
 {{"Sopa o consomé": null, "Arroz o pasta": ["Arroz"], "Plato fuerte": null, "extra_1": null, "extra_2": null, "extra_3": null, "a_la_carta": null}}
 """
 
-PROMPT_EXTRAER_MODIFICACION = f"""
+
+def PROMPT_EXTRAER_MODIFICACION(menu_data: dict) -> str:
+    menu = menu_data.get('menu', {})
+    menu_str = ""
+    for tiempo, platillos in menu.items():
+        nombres = [p['platillo'] for p in platillos]
+        menu_str += f"- {tiempo}: {', '.join(nombres)}\n"
+    return f"""
 Eres un extractor de datos para una cocina económica llamada {business_name}.
 
 Tu ÚNICO objetivo es extraer los intercambios de platillos que el cliente quiere hacer en su orden del último mensaje y devolverlos en JSON válido.
 
 El menú disponible es:
 {menu_str}
-
 Debes devolver UN ÚNICO objeto JSON con una lista de cambios. Cada cambio es una lista de dos elementos: [platillo_original, platillo_nuevo].
 
 Campo:
