@@ -526,6 +526,7 @@ class DBCA:
             write_log("system", "descongelar_pedido_error", f"Error al descongelar pedido para pedido_grupo: {pedido_grupo}: {str(e)}.", nivel="error")
             return False
 
+    @staticmethod
     def _calcular_monto_comida(precio_menu: float, descuento_por_platillo: bool,
         platillos_seleccionados: list[dict],  # [{"platillo_id": int, "platillo_nombre": str, "precio": float}]
         todos_los_platillos: list[dict],      # todos los platillos activos del menú
