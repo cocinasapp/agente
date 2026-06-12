@@ -248,12 +248,13 @@ async def notify_status_change(request: Request, _sc=supabase_class.supabase):
         return JSONResponse(content={"status": "error", "detail": str(e)}, status_code=500)
 
 @app.post('/api/v1/ordenes/manual')
-async def crear_orden_manual_endpoint(request: Request, supabase_client=supabase_class.supabase):
+async def crear_orden_manual_endpoint(request: Request):
     """
     Crea una orden manual desde el dashboard (sin WhatsApp).
     Recibe: cliente_nombre, tipo_entrega, direccion,
             comidas, extras, precio_menu, descuento_por_platillo
     """
+    supabase_client = supabase_class.supabase
     try:
 
         body = await request.json()
@@ -293,11 +294,12 @@ async def crear_orden_manual_endpoint(request: Request, supabase_client=supabase
         return JSONResponse(content={"ok": False, "error": str(e)}, status_code=500)
 
 @app.put('/api/v1/ordenes/grupo/{pedido_grupo}/editar')
-async def editar_grupo_endpoint(pedido_grupo: str, request: Request, supabase_client=supabase_class.supabase):
+async def editar_grupo_endpoint(pedido_grupo: str, request: Request):
     """
     Edita todas las comandas de un grupo (o solo las que vengan en el payload).
     Recibe: lista de {comanda_id, platillos: [...], precio_menu, descuento_por_platillo}
     """
+    supabase_client = supabase_class.supabase
     try:
 
         body = await request.json()
