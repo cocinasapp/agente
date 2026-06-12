@@ -1,6 +1,8 @@
 
+import os
 import logging
 from logger_utils import write_log
+from db import DBCA
 from states.generic import get_username
 from states.comensal.handler import handle_comensal
 from states.new.prompts import CAT_INTENTION, PROMPT_INFOMENU, PROMPT_ATTENTION
@@ -19,7 +21,8 @@ def handle_new(messages, data, telefono, session_context):
     write_log(telefono, "cat_intention", f"Categoría de intención detectada en new: {cat_intention}")
 
     if 'gral' in cat_intention:
-        respuesta = llamar_llm(CONTEXT + PROMPT_INFOMENU + f"{session_context.get('nombre_usuario', '')}", messages, data["body"])
+        menu_del_dia = DBCA().consultar_menu_del_dia(user_id=os.getenv('USER_ID'))
+        respuesta = llamar_llm(CONTEXT + PROMPT_INFOMENU(menu_del_dia) + f"{session_context.get('nombre_usuario', '')}", messages, data["body"])
         nuevo_estado = "gral"
 
     elif 'comensal' in cat_intention:
