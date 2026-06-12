@@ -161,12 +161,16 @@ def persistir_pedido(
     orden_temporal["nombre_cliente"] = nombre_completo
     campos_menu_keys = [c for c in campos_platillos_validos if c != 'a_la_carta']
 
-    # Si la orden viene de agregar_platillo sobre un pedido ya confirmado,
-    # inyectar comanda_ids originales por índice antes del loop.
+    # Inyectar comanda_ids originales por índice solo cuando la orden no tiene comanda_id ya asignado
+    # (caso agregar_platillo sobre pedido rehidratado).
     comanda_ids_originales = orden_temporal.pop("_comanda_ids_originales", [])
     for i, comanda_id_original in enumerate(comanda_ids_originales):
         if i < len(orden_temporal["ordenes"]) and comanda_id_original:
-            orden_temporal["ordenes"][i]["comanda_id"] = comanda_id_original
+            if not orden_temporal["ordenes"][i].get("comanda_id"):
+                orden_temporal["ordenes"][i]["comanda_id"] = comanda_id_original
+
+    # Comandas completamente eliminadas (ej: se borró el único platillo de la comanda)
+    comanda_ids_a_eliminar = orden_temporal.pop("_comanda_ids_a_eliminar", [])
 
     comandas_ids = []
     for orden in orden_temporal["ordenes"]:
@@ -243,6 +247,15 @@ def persistir_pedido(
                     )
 
         comandas_ids.append(comanda_id)
+
+    # Borrar comandas que fueron completamente eliminadas durante una edición
+    for cid in comanda_ids_a_eliminar:
+        try:
+            supabase_client.supabase.table(os.getenv('TLB_DESGLOSE')).delete().eq('comanda_id', cid).execute()
+            supabase_client.supabase.table(os.getenv('TLB_COMANDAS')).delete().eq('id', cid).execute()
+            logger.info("persistir_pedido: comanda eliminada | comanda_id: %s", cid)
+        except Exception as e:
+            logger.error("persistir_pedido: fallo al eliminar comanda | comanda_id: %s | error: %s", cid, e)
 
     estado_entrega = {
         "comandas_ids": comandas_ids,
@@ -499,6 +512,8 @@ def eliminar_platillos_de_orden(orden_temporal, tool_input_edicion, campos_plati
             a_eliminar.add(val.lower())
 
     ordenes_nuevas = []
+    comanda_ids_eliminadas = []
+
     for orden in orden_temporal.get("ordenes", []):
         platillos_nuevos = {}
         for campo, valores in orden.get("platillos", {}).items():
@@ -519,17 +534,27 @@ def eliminar_platillos_de_orden(orden_temporal, tool_input_edicion, campos_plati
             costo = supabase_client.determinar_costo_comanda(
                 tool_input_recalculo, config=config, campos_platillos=campos_platillos_validos
             )
-            ordenes_nuevas.append({
+            nueva_orden = {
                 "orden_numero": len(ordenes_nuevas) + 1,
                 "platillos": platillos_nuevos,
                 "desechables": orden.get("desechables", False),
-                "costos": costo
-            })
+                "costos": costo,
+            }
+            if orden.get("comanda_id"):
+                nueva_orden["comanda_id"] = orden["comanda_id"]
+            ordenes_nuevas.append(nueva_orden)
+        else:
+            # Orden eliminada completamente — registrar su id para borrarla de Supabase
+            if orden.get("comanda_id"):
+                comanda_ids_eliminadas.append(orden["comanda_id"])
 
     monto_total = sum(o["costos"].get("monto_total", 0) for o in ordenes_nuevas)
     orden_temporal["ordenes"] = ordenes_nuevas
     orden_temporal["total_ordenes"] = len(ordenes_nuevas)
     orden_temporal["monto_total_general"] = monto_total
+
+    if comanda_ids_eliminadas:
+        orden_temporal["_comanda_ids_a_eliminar"] = comanda_ids_eliminadas
 
     content = {
         "status": "orden_editada",
