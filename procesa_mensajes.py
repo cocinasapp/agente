@@ -3,12 +3,12 @@
 import logging, os, requests, time
 from agente import responder_usuario
 from chat_history import (
-    add_to_chat_history, 
-    get_chat_history, 
-    reset_chat_history,
+    add_to_chat_history,
+    get_chat_history,
     reset_chat_history,
     delete_orden_temporal,
-    delete_estado_entrega
+    delete_estado_entrega,
+    delete_atencion_clientes,
 )
 from clients.redis_client import redis_client
 from datetime import datetime
@@ -101,7 +101,9 @@ def borrar_memoria(telefono_jid: str, telefono: str):
         reset_chat_history(id_chat_history)
         delete_orden_temporal(telefono)
         delete_estado_entrega(telefono)
+        delete_atencion_clientes(telefono)
         redis_client.delete(f"estado:{telefono}")
+        redis_client.delete(f"session_context:{telefono}")
 
     except Exception as e:
         logger.error(f"⚠️ Redis caído al borrar memoria | error: {e}")
