@@ -1,6 +1,6 @@
 
 import asyncio
-# from clients.supabase_client import supabase_client
+from clients.supabase_client import supabase_client
 from dotenv import load_dotenv
 
 load_dotenv()
