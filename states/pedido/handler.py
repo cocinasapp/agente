@@ -228,3 +228,8 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
         respuesta = llamar_llm(PROMPT_ATTENTION + str(content), messages, data["body"])
         write_log(telefono, "respuesta_esperando_confirmacion", f"Respuesta generada esperando confirmación: {respuesta}")
         return {"answer": respuesta, "nuevo_estado": "pedido", "session_context": session_context}
+
+    # Fallback: intención no reconocida
+    logger.warning("Intención no reconocida en pedido: %s | telefono: %s", intencion, telefono)
+    respuesta = llamar_llm(CONTEXT + PROMPT_ATTENTION, messages, data["body"])
+    return {"answer": respuesta, "nuevo_estado": "pedido", "session_context": session_context}

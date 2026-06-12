@@ -143,6 +143,13 @@ def dispatch(messages, data, telefono):
 
     resultado = handler(messages, data, telefono, session_context)
 
+    if resultado is None:
+        logger.error("Handler retornó None | telefono: %s | estado: %s", telefono, estado_actual)
+        from states.shared_prompts import CONTEXT
+        from utils_llm import llamar_llm
+        respuesta = llamar_llm(CONTEXT, messages, data["body"])
+        resultado = {"answer": respuesta, "nuevo_estado": estado_actual, "session_context": session_context}
+
     nuevo_estado = resultado.get("nuevo_estado", estado_actual)
     datos_extraidos = resultado.get("datos_extraidos", {})
     nuevo_contexto = resultado.get("session_context")
