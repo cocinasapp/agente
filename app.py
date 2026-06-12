@@ -119,7 +119,8 @@ async def webhook(request: Request):
         return JSONResponse(content={'status': 'ok-post'}, status_code=200)
 
 @app.post('/api/v1/notify/status')
-async def notify_status_change(request: Request, _sc=supabase_class.supabase):
+async def notify_status_change(request: Request):
+    _sc = supabase_class.supabase
     try:
         from procesa_mensajes import enviar_mensaje
 
