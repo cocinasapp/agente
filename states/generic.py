@@ -149,12 +149,13 @@ def agregar_platillos_a_orden(orden_temporal, tool_input, config, supabase_clien
     return orden_temporal, content
 
 def persistir_pedido(
-        orden_temporal, 
-        nombre_completo, 
-        telefono, 
-        config, 
-        supabase_client, 
-        campos_platillos_validos
+        orden_temporal,
+        nombre_completo,
+        telefono,
+        config,
+        supabase_client,
+        campos_platillos_validos,
+        info_entrega=None
         ):
     pedido_grupo = orden_temporal["pedido_grupo"]
     orden_temporal["nombre_cliente"] = nombre_completo
@@ -206,6 +207,12 @@ def persistir_pedido(
             )
         else:
             # INSERT: comanda nueva
+            _info = info_entrega or {}
+            _metodo = _info.get('metodo_de_entrega') or 'local'
+            _tipo_entrega = 'domicilio' if 'domicilio' in _metodo.lower() else 'local'
+            _domicilio = _info.get('domicilio') or ''
+            _referencia = _info.get('referencia') or ''
+            _direccion = ', '.join(filter(None, [_domicilio, _referencia]))
             comanda = {
                 'user_id': os.getenv('USER_ID'),
                 'cliente_nombre': nombre_completo,
@@ -215,7 +222,9 @@ def persistir_pedido(
                 'monto_desechables': orden['costos'].get('monto_desechables', 0),
                 'monto_total': orden['costos'].get('monto_total', 0),
                 'telefono_cliente': telefono,
-                'es_extra': es_extra_comanda
+                'es_extra': es_extra_comanda,
+                'tipo_entrega': _tipo_entrega,
+                'direccion': _direccion,
             }
             comanda_id = supabase_client.insert_data(comanda, os.getenv('TLB_COMANDAS'), return_id=True)
             if not comanda_id:

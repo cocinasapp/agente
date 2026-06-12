@@ -135,7 +135,8 @@ def handle_terminar_pedido(messages, data, telefono, session_context, supabase_c
             write_log(telefono, "pedido_descongelado", f"Pedido descongelado para pedido grupo {pedido_grupo_modificando}", nivel="info")
  
     estado_entrega, content = persistir_pedido(
-        orden_temporal, nombre_completo, telefono, config, supabase_client, campos_platillos_validos
+        orden_temporal, nombre_completo, telefono, config, supabase_client, campos_platillos_validos,
+        info_entrega=info_entrega
     )
 
     content["metodo_de_entrega"] = info_entrega.get("metodo_de_entrega")
