@@ -97,21 +97,23 @@ def borrar_memoria_orig(telefono_jid: str, telefono: str):
 def borrar_memoria(telefono_jid: str, telefono: str):
     id_chat_history = f'fp-chatHistory:{telefono_jid}'
 
+    # Supabase primero — así el fallback ya tiene el estado correcto
+    # antes de que Redis se limpie y el siguiente mensaje llegue
+    upsert_usuario(telefono, campos={"estado_actual": "new", "datos_recolectados": {}})
+
     try:
         reset_chat_history(id_chat_history)
         delete_orden_temporal(telefono)
         delete_estado_entrega(telefono)
         delete_atencion_clientes(telefono)
-        redis_client.delete(f"estado:{telefono}")
-        redis_client.delete(f"session_context:{telefono}")
+        # Escribir "new" directo en vez de borrar: si llega un mensaje
+        # antes de que Supabase confirme, Redis ya tiene el estado correcto
+        redis_client.set(f"estado:{telefono}", "new", ex=60*60*24)
+        redis_client.set(f"session_context:{telefono}", "{}", ex=60*60*24*7)
 
     except Exception as e:
         logger.error(f"⚠️ Redis caído al borrar memoria | error: {e}")
         write_log(telefono, "borrar_memoria_redis_error", f"Error al borrar memoria en Redis para {telefono}: {str(e)}", nivel="error")
-
-    # Supabase siempre se ejecuta
-    set_session_context(telefono, {})
-    upsert_usuario(telefono, campos={"estado_actual": "new"})
     logger.info(f"🗑️ Memoria borrada para {telefono}")
     write_log(telefono, "borrar_memoria", f"Memoria borrada para {telefono}", nivel="info")
 
