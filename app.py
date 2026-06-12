@@ -254,7 +254,6 @@ async def crear_orden_manual_endpoint(request: Request):
     Recibe: cliente_nombre, tipo_entrega, direccion,
             comidas, extras, precio_menu, descuento_por_platillo
     """
-    supabase_client = supabase_class.supabase
     try:
 
         body = await request.json()
@@ -273,7 +272,7 @@ async def crear_orden_manual_endpoint(request: Request):
         if not comidas and not extras:
             return JSONResponse(content={"ok": False, "error": "La orden no tiene items"}, status_code=400)
 
-        resultado = supabase_client.crear_orden_manual(
+        resultado = supabase_class.crear_orden_manual(
             cliente_nombre=cliente_nombre,
             tipo_entrega=tipo_entrega,
             direccion=direccion,
@@ -299,7 +298,6 @@ async def editar_grupo_endpoint(pedido_grupo: str, request: Request):
     Edita todas las comandas de un grupo (o solo las que vengan en el payload).
     Recibe: lista de {comanda_id, platillos: [...], precio_menu, descuento_por_platillo}
     """
-    supabase_client = supabase_class.supabase
     try:
 
         body = await request.json()
@@ -310,7 +308,7 @@ async def editar_grupo_endpoint(pedido_grupo: str, request: Request):
         if not comandas:
             return JSONResponse(content={"ok": False, "error": "No hay comandas para editar"}, status_code=400)
 
-        todos_los_platillos = supabase_client.read_data(
+        todos_los_platillos = supabase_class.read_data(
             table_name=os.getenv("TLB_PLATILLOS"),
             variables="id, platillo, precio",
             filters={"activo": "TRUE"},
@@ -318,7 +316,7 @@ async def editar_grupo_endpoint(pedido_grupo: str, request: Request):
 
         resultados = []
         for comanda in comandas:
-            resultado = supabase_client.editar_comanda(
+            resultado = supabase_class.editar_comanda(
                 comanda_id=comanda["comanda_id"],
                 platillos=comanda.get("platillos", []),
                 precio_menu=precio_menu,
