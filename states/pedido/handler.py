@@ -86,7 +86,7 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
     #     return {"answer": respuesta, "nuevo_estado": "recolectar_info", "session_context": session_context}
 
     if intencion == "eliminar_platillo":
-        raw = llamar_llm(CONTEXT + PROMPT_EXTRAER_EDICION, messages, data["body"])
+        raw = llamar_llm(PROMPT_EXTRAER_EDICION, messages, data["body"])
         try:
             raw = raw.strip().replace("```json", "").replace("```", "").strip()
             tool_input_edicion = json.loads(raw)
@@ -117,7 +117,7 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
         return {"answer": respuesta, "nuevo_estado": "pedido", "session_context": session_context}
 
     if intencion == "reemplazar_platillo":
-        raw = llamar_llm(CONTEXT + PROMPT_EXTRAER_MODIFICACION, messages, data["body"])
+        raw = llamar_llm(PROMPT_EXTRAER_MODIFICACION, messages, data["body"])
         try:
             raw = raw.strip().replace("```json", "").replace("```", "").strip()
             tool_input_modificacion = json.loads(raw)
@@ -150,7 +150,7 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
     
     if intencion == "agregar_platillo":
         # Extracción de orden via LLM
-        raw = llamar_llm(CONTEXT + PROMPT_EXTRAER_ORDEN, messages, data["body"])
+        raw = llamar_llm(PROMPT_EXTRAER_ORDEN(menu_data), messages, data["body"])
         try:
             raw = raw.strip().replace("```json", "").replace("```", "").strip()
             tool_input = json.loads(raw)

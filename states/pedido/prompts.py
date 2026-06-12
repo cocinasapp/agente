@@ -9,28 +9,26 @@ config = db.obtener_config_cocina()
 agent_name = config.get('agent_name', 'Lucía')
 business_name = config.get('business_name', 'la cocina')
 
-menu_data = db.consultar_menu_del_dia()
-menu = menu_data.get('menu', {})
-campos_platillos_validos = list(menu.keys())
 
-# Construir string del menú para los prompts
-menu_str = ""
-for tiempo, platillos in menu.items():
-    nombres = [p['platillo'] for p in platillos]
-    menu_str += f"- {tiempo}: {', '.join(nombres)}\n"
-
-PROMPT_EXTRAER_ORDEN = f"""
+def PROMPT_EXTRAER_ORDEN(menu_data: dict) -> str:
+    menu = menu_data.get('menu', {})
+    campos = list(menu.keys())
+    menu_str = ""
+    for tiempo, platillos in menu.items():
+        nombres = [p['platillo'] for p in platillos]
+        menu_str += f"- {tiempo}: {', '.join(nombres)}\n"
+    campos_lines = "\n".join(f"- {c}: lista de platillos de {c} pedidos (si no mencionó usa null)" for c in campos)
+    return f"""
 Eres un extractor de datos para una cocina económica llamada {business_name}.
 
 Tu ÚNICO objetivo es extraer los datos del pedido del último mensaje del usuario y devolverlos en JSON válido.
 
 El menú disponible es:
 {menu_str}
-
 Debes devolver UN ÚNICO objeto JSON donde cada tiempo es una key con una lista de platillos pedidos.
 
 Campos:
-{chr(10).join(f'- {campo}: lista de platillos de {campo} pedidos (si no mencionó usa null)' for campo in campos_platillos_validos)}
+{campos_lines}
 - extra_1: primer adicional al menú (si aplica, si no usa null)
 - extra_2: segundo adicional del menú (si aplica, si no usa null)
 - extra_3: tercer adicional del menú (si aplica, si no usa null)
@@ -42,7 +40,7 @@ REGLAS ESTRICTAS:
 - Devuelve ÚNICAMENTE el objeto JSON, sin texto adicional, sin markdown, sin explicaciones
 - Si un tiempo no fue mencionado usa null (no una lista vacía)
 - Los tiempos con platillos deben ser listas, aunque sea un solo elemento: ["Sopa aguada"]
-- Si hay más de un platillo de un mismo tiempo, se incluyen como lista en ese tiempo. ["Tacos dorados", "Enchiladas verdes"]
+- Si hay más de un platillo de un mismo tiempo, se incluyen como lista en ese tiempo: ["Tacos dorados", "Enchiladas verdes"]
 - No inventes platillos ni tiempos que no estén en el menú
 - El JSON debe ser válido y parseable directamente con json.loads()
 - NORMALIZA los platillos al nombre EXACTO del menú aunque el usuario escriba abreviado,
