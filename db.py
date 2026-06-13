@@ -1,4 +1,4 @@
-# pyton3 db.py
+# python3 db.py
 
 import logging, os, uuid
 from clients.supabase_client import supabase_client
@@ -980,7 +980,8 @@ if __name__=='__main__':
     supabase_class = DBCA()
     # informacion_cliente=supabase_class.obtener_config_cocina(user_id=USER_ID)
     # menu_del_dia=supabase_class.consultar_menu_del_dia(user_id=USER_ID)
-    breakpoint()
-    supabase_class.obtener_pedido_reciente_usuario(telefono='2422341152')
-    print(
-    )
+    # supabase_class.obtener_pedido_reciente_usuario(telefono='2422341152')
+    # print(
+    # )
+    menu_del_dia = supabase_class.consultar_menu_del_dia(user_id=os.getenv('USER_ID'))
+    print("Menu del día:", menu_del_dia)

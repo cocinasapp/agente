@@ -135,6 +135,7 @@ def set_estado(telefono: str, nuevo_estado: str, user_id: str = USER_ID):
 def dispatch(messages, data, telefono):
     estado_actual = get_estado(telefono)
     logger.debug("Estado actual | telefono: %s | estado: %s", telefono, estado_actual)
+    print(f"Estado actual: {estado_actual} --- telefono: {telefono}")
 
     session_context = get_session_context(telefono)
 
