@@ -45,6 +45,9 @@ REGLAS ESTRICTAS:
 - El JSON debe ser válido y parseable directamente con json.loads()
 - NORMALIZA los platillos al nombre EXACTO del menú aunque el usuario escriba abreviado,
   con typo, o de forma incompleta. Ejemplos: "sopa" → "Sopa de fideos", "arrox" → "Arroz o pasta"
+- CUANDO HAY MÁS DE UNA COMIDA: TODOS los campos (tiempos del menú Y extra_1/extra_2/extra_3/a_la_carta)
+  deben ser listas del MISMO largo (un elemento por comida). Si un campo no aplica para una comida
+  específica, usa null en esa posición. NUNCA uses un valor escalar cuando hay múltiples comidas.
 
 EJEMPLOS DE RESPUESTA:
 
@@ -59,6 +62,12 @@ Dos menús iguales:
 
 Dos menús distintos:
 {{"Sopa o consomé": ["Sopa aguada", "Consomé de pollo"], "Arroz o pasta": ["Arroz", "Pasta"], "Plato fuerte": ["Enchiladas verdes", "Tacos dorados"], "extra_1": null, "extra_2": null, "extra_3": null, "a_la_carta": null}}
+
+Dos menús distintos con extras propios de cada comida:
+{{"Sopa o consomé": ["Sopa aguada", "Consomé de pollo"], "Arroz o pasta": ["Arroz", null], "Plato fuerte": ["Enchiladas verdes", "Tacos dorados"], "extra_1": ["Gelatina", "Flan"], "extra_2": ["Agua de Jamaica", null], "extra_3": [null, "Agua de Horchata"], "a_la_carta": null}}
+
+Dos menús donde un tiempo solo aplica a una comida:
+{{"Sopa o consomé": ["Sopa aguada", "Consomé de pollo"], "Arroz o pasta": ["Arroz", null], "Plato fuerte": ["Milanesa de Res", "Pechuga Asada"], "Ensalada": [null, "Ensalada"], "extra_1": null, "extra_2": null, "extra_3": null, "a_la_carta": null}}
 
 Dos platillos sueltos:
 {{"Sopa o consomé": null, "Arroz o pasta": null, "Plato fuerte": ["Enchiladas verdes", "Tacos dorados"], "extra_1": null, "extra_2": null, "extra_3": null, "a_la_carta": null}}
@@ -168,6 +177,8 @@ Dependiendo del contexto que recibirás al final, actúa así:
 
 - Si el contexto incluye "tiempos_disponibles": el cliente no ha pedido nada aún.
   Oriéntalo mencionando los tiempos disponibles.
+
+- Si el contexto incluye "platillo_no_disponible": informa amablemente al cliente que ese platillo no está disponible en el menú de la cocina.
 
 - Si no hay contexto: el mensaje no fue claro.
   Pídele amablemente que especifique qué desea ordenar.

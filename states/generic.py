@@ -415,29 +415,29 @@ def normalizar_a_extra_si_unico(tool_inputs, campos_menu_actuales, campos_platil
 def expandir_tool_input(tool_input, campos_menu_actuales):
     """
     Convierte el nuevo formato (dict con listas) al formato original (lista de dicts).
-    
-    {'Plato fuerte': ['Tacos dorados', 'Enchiladas verdes'], ...}
+
+    {'Plato fuerte': ['Tacos dorados', 'Enchiladas verdes'], 'extra_1': ['Flan', 'Gelatina'], ...}
     →
-    [{'Plato fuerte': 'Tacos dorados', ...}, {'Plato fuerte': 'Enchiladas verdes', ...}]
+    [{'Plato fuerte': 'Tacos dorados', 'extra_1': 'Flan', ...}, {'Plato fuerte': 'Enchiladas verdes', 'extra_1': 'Gelatina', ...}]
     """
-    # Determinar cuántas órdenes hay (longitud máxima de las listas)
+    extras_keys = ['extra_1', 'extra_2', 'extra_3', 'a_la_carta']
+    all_keys = campos_menu_actuales + extras_keys
+
     max_ordenes = max(
-        (len(v) for c in campos_menu_actuales if isinstance(v := tool_input.get(c), list)),
+        (len(v) for k in all_keys if isinstance(v := tool_input.get(k), list)),
         default=1
     )
-
-    extras = {k: tool_input.get(k) for k in ['extra_1', 'extra_2', 'extra_3', 'a_la_carta']}
 
     lista = []
     for i in range(max_ordenes):
         entry = {}
-        for campo in campos_menu_actuales:
+        for campo in all_keys:
             val = tool_input.get(campo)
             if isinstance(val, list):
                 entry[campo] = val[i] if i < len(val) else None
             else:
-                entry[campo] = val  # None o string directo
-        entry.update(extras)
+                # Scalar: only assign to first entry when multi-comida to avoid duplication
+                entry[campo] = val if (max_ordenes == 1 or i == 0) else None
         lista.append(entry)
 
     return lista

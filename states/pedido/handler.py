@@ -195,6 +195,29 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
         campos_menu_actuales = [c for c in campos_platillos_validos if c != 'a_la_carta']
         orden_redis = get_orden_temporal(telefono)
 
+        # Validar a_la_carta contra DB
+        a_la_carta_raw = tool_input.get('a_la_carta')
+        if isinstance(a_la_carta_raw, list):
+            a_la_carta_vals = [v for v in a_la_carta_raw if v and v not in ('', '<UNKNOWN>')]
+        elif a_la_carta_raw and a_la_carta_raw not in ('', '<UNKNOWN>'):
+            a_la_carta_vals = [a_la_carta_raw]
+        else:
+            a_la_carta_vals = []
+        if a_la_carta_vals:
+            platillos_db = supabase_client.read_data(
+                table_name=supabase_client.table_platillos,
+                variables='platillo',
+                filters={'activo': 'TRUE'},
+            )
+            nombres_db = [supabase_client.unaccent_simple(p['platillo'].lower()) for p in (platillos_db or [])]
+            no_disponibles = [v for v in a_la_carta_vals if supabase_client.unaccent_simple(v.lower()) not in nombres_db]
+            if no_disponibles:
+                platillo_str = no_disponibles[0] if len(no_disponibles) == 1 else ', '.join(no_disponibles)
+                content = {"platillo_no_disponible": platillo_str}
+                respuesta = llamar_llm(PROMPT_ATTENTION + str(content), messages, data["body"])
+                write_log(telefono, "platillo_no_disponible", f"Platillo no disponible: {platillo_str}")
+                return {"answer": respuesta, "nuevo_estado": "pedido", "session_context": session_context}
+
         if not tiene_contenido(tool_input, campos_platillos_validos):
             logger.debug("Fallback: mensaje sin platillos ni extras | telefono: %s", telefono)
             write_log(telefono, "mensaje_sin_contenido", "El mensaje no contiene platillos ni extras detectables", nivel="warning")
