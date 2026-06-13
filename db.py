@@ -548,6 +548,15 @@ class DBCA:
 
         return max(0.0, precio_menu - descuento)
 
+    def _decrementar_stock(self, platillo_id: str):
+        try:
+            result = self.supabase.table(self.table_platillos).select('stock').eq('id', platillo_id).single().execute()
+            current = result.data.get('stock') if result.data else None
+            if current is not None and current > 0:
+                self.supabase.table(self.table_platillos).update({'stock': current - 1}).eq('id', platillo_id).execute()
+        except Exception as e:
+            print(f"⚠️ Error decrementando stock para {platillo_id}: {e}")
+
     def crear_orden_manual(
         self,
         cliente_nombre: str,
@@ -627,6 +636,7 @@ class DBCA:
                         },
                         self.table_desglose
                     )
+                    self._decrementar_stock(platillo["platillo_id"])
 
                 print(f"✅ Comida {i + 1} creada: {comanda_id} | ${monto} | {len(platillos_comida)} platillos")
                 write_log(uid or "system", "comida_creada_manual", f"Comida {i + 1} creada manualmente para {cliente_nombre} con comanda_id: {comanda_id} y monto: ${monto}.", nivel="info")
@@ -664,6 +674,7 @@ class DBCA:
                     {"comanda_id": comanda_id, "platillo_id": platillo_id},
                     self.table_desglose
                 )
+                self._decrementar_stock(platillo_id)
 
                 print(f"✅ Extra creado: {comanda_id} | {nombre_extra} | ${precio_extra}")
 
@@ -742,7 +753,7 @@ class DBCA:
                 write_log("system", "consultar_menu_user_id_missing", "USER_ID no configurado en el entorno. No se puede consultar menú del día.", nivel="warning")
                 return {}
             
-            # Consultar platillos
+            # Consultar platillos (excluir stock=0, mantener null=ilimitado)
             response = (
                 self.supabase
                 .table(self.table_platillos)
@@ -752,6 +763,7 @@ class DBCA:
                 )
                 .eq("user_id", user_id)
                 .eq("activo", True)
+                .or_("stock.is.null,stock.gt.0")
                 .execute()
             )
 

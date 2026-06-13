@@ -245,6 +245,7 @@ def persistir_pedido(
                         {'comanda_id': comanda_id, 'platillo_id': id_platillo_obj.get('id')},
                         os.getenv('TLB_DESGLOSE')
                     )
+                    supabase_client._decrementar_stock(id_platillo_obj.get('id'))
 
         comandas_ids.append(comanda_id)
 

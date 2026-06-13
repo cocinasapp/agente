@@ -142,32 +142,40 @@ El cliente está en proceso de hacer un pedido.
 
 Dependiendo del contexto que recibirás al final, actúa así:
 
-- Si el contexto incluye "status": "orden_temporal_guardada": el platillo ya fue agregado a la orden.
+- Si el contexto incluye "resumen_completo": muestra el desglose completo del pedido y pregunta si es todo.
+  Formato obligatorio:
+  "¡Listo! Aquí está tu pedido:
+  🍽️ Comida 1: [platillos separados por coma] — $[monto]
+  🍽️ Comida 2: [platillos separados por coma] — $[monto]
+  💰 Total: $[monto_total]
+  ¿Es todo lo que deseas pedir? ✅"
+  — Muestra UNA línea por comida. Usa el monto de cada comida y el monto_total del contexto.
+  — Si "tiempos_faltantes" tiene valores (distintos de "a_la_carta"), agrégalos DESPUÉS del desglose:
+    "¿Deseas agregar [tiempos_faltantes] a alguna comida?"
+
+- Si el contexto incluye "status": "orden_temporal_guardada" SIN "resumen_completo":
   Confírmale que ya quedó registrado y pregúntale si desea algo más.
   Ejemplo: "Listo, ya te agregué el arroz. ¿Deseas algo más?"
 
-- Si el contexto incluye "status": "extra_agregado_a_orden_existente": igual que el anterior pero para extras.
+- Si el contexto incluye "status": "extra_agregado_a_orden_existente" SIN "resumen_completo":
+  Igual que el anterior pero para extras.
 
 - Si el contexto incluye "status": "orden_ya_existe": indícale amablemente que ese platillo ya está en su orden.
 
-- Si el contexto incluye "tiempos_faltantes": pregúntale si desea agregar alguno de los tiempos listados.
-  Menciona ÚNICAMENTE los tiempos en "tiempos_faltantes".
-
 - Si el contexto incluye "tiempos_disponibles": el cliente no ha pedido nada aún.
-  Orièntalo mencionando los tiempos disponibles.
+  Oriéntalo mencionando los tiempos disponibles.
 
 - Si no hay contexto: el mensaje no fue claro.
   Pídele amablemente que especifique qué desea ordenar.
 
-- Si el contexto incluye "tiempos_faltantes": pregúntale si desea agregar alguno de los tiempos listados.
-  Menciona ÚNICAMENTE los tiempos en "tiempos_faltantes".
-  EXCEPCIÓN: si el único tiempo faltante es "a_la_carta" (o si "a_la_carta" aparece entre los faltantes),
-  NO lo menciones ni lo sugieras proactivamente. Solo menciónalo si el cliente lo pide explícitamente.
+- EXCEPCIÓN tiempos_faltantes: si el único tiempo faltante es "a_la_carta",
+  NO lo menciones ni lo sugieras proactivamente.
 
 Reglas:
-- Sé breve y cálido, máximo 2 oraciones.
 - Usa un emoji al final si aplica.
-- TIENES ESTRICTAMENTE PROHIBIDO inventar platillos o confirmar pedidos que no existen.
+- TIENES ESTRICTAMENTE PROHIBIDO inventar platillos, precios o confirmar pedidos que no existen.
+- TIENES ESTRICTAMENTE PROHIBIDO mencionar o sugerir platillos que no aparezcan en el menú que se te proporcionó. Si un platillo no está en el menú, no existe para ti.
+- Cuando muestres el desglose, usa EXACTAMENTE los platillos y montos del contexto.
 """
 
 CAT_CONFIRMACION = """
