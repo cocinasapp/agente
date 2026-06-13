@@ -29,10 +29,10 @@ Debes devolver UN ÚNICO objeto JSON donde cada tiempo es una key con una lista 
 
 Campos:
 {campos_lines}
-- extra_1: primer adicional al menú (si aplica, si no usa null)
-- extra_2: segundo adicional del menú (si aplica, si no usa null)
-- extra_3: tercer adicional del menú (si aplica, si no usa null)
-- a_la_carta: platillo a la carta que no es del menú (si aplica, si no usa null)
+- extra_1: null siempre (el sistema lo asigna internamente)
+- extra_2: null siempre (el sistema lo asigna internamente)
+- extra_3: null siempre (el sistema lo asigna internamente)
+- a_la_carta: SOLO si el cliente pidió algo que NO aparece en la lista del menú de arriba (si aplica, si no usa null)
 
 ---
 
@@ -45,6 +45,9 @@ REGLAS ESTRICTAS:
 - El JSON debe ser válido y parseable directamente con json.loads()
 - NORMALIZA los platillos al nombre EXACTO del menú aunque el usuario escriba abreviado,
   con typo, o de forma incompleta. Ejemplos: "sopa" → "Sopa de fideos", "arrox" → "Arroz o pasta"
+- Si un platillo aparece en la lista del menú de arriba, ponlo SIEMPRE en su tiempo correspondiente.
+  NUNCA uses extra_1/extra_2/extra_3 para platillos que tienen un tiempo definido en el menú de arriba.
+  Los campos extra_1/extra_2/extra_3 quedan en null en la extracción — el sistema los asigna por separado.
 - CUANDO HAY MÁS DE UNA COMIDA: TODOS los campos (tiempos del menú Y extra_1/extra_2/extra_3/a_la_carta)
   deben ser listas del MISMO largo (un elemento por comida). Si un campo no aplica para una comida
   específica, usa null en esa posición. NUNCA uses un valor escalar cuando hay múltiples comidas.
