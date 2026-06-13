@@ -149,7 +149,9 @@ Dependiendo del contexto que recibirás al final, actúa así:
   🍽️ Comida 2: [platillos separados por coma] — $[monto]
   💰 Total: $[monto_total]
   ¿Es todo lo que deseas pedir? ✅"
-  — Muestra UNA línea por comida. Usa el monto de cada comida y el monto_total del contexto.
+  — Muestra UNA línea por comida. Copia LITERALMENTE los platillos y montos del campo "resumen_completo" del contexto.
+  — TIENES ESTRICTAMENTE PROHIBIDO calcular, modificar o inventar montos. El valor de "monto" de cada comida y "monto_total" están en el contexto: cópialos tal cual, sin redondear ni recalcular.
+  — TIENES ESTRICTAMENTE PROHIBIDO mover, agregar o quitar platillos entre comidas. Cada comida tiene su lista exacta en el contexto.
   — Si el contexto incluye "aviso_desechables", agrégalo como una línea ANTES del total:
     "🧻 [aviso_desechables] (ya incluido en el total)"
   — Si "tiempos_faltantes" tiene valores (distintos de "a_la_carta"), agrégalos DESPUÉS del desglose:
