@@ -107,8 +107,6 @@ def handle_terminar_pedido(messages, data, telefono, session_context, supabase_c
     # ── Flujo normal: persistir pedido ────────────────────────────────────────
     # orden_temporal = get_orden_temporal(telefono)
     orden_temporal = session_context.get("orden") or get_orden_temporal(telefono)
-    # breakpoint()
-    orden_temporal = get_orden_temporal(telefono)
     
     info_entrega = session_context.get("info_entrega", {})
 
