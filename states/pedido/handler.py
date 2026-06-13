@@ -113,6 +113,21 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
         session_context["esperando_confirmacion"] = True
         faltantes = que_falta(orden_temporal, campos_platillos_validos)
         content["tiempos_faltantes"] = faltantes
+        content["resumen_completo"] = [
+            {
+                "comida": i + 1,
+                "platillos": [
+                    p for campo, vals in o.get("platillos", {}).items()
+                    for p in (vals if isinstance(vals, list) else [vals])
+                    if p and p not in empty_placeholders
+                ],
+                "monto": o.get("costos", {}).get("monto_total", 0),
+            }
+            for i, o in enumerate(orden_temporal.get("ordenes", []))
+        ]
+        content["monto_total"] = orden_temporal.get("monto_total_general", 0)
+        if config.get('cobro_desechables'):
+            content["aviso_desechables"] = f"Se cobran desechables por ${config.get('precio_desechables', 0)} por comida"
         respuesta = llamar_llm(PROMPT_ATTENTION + str(content), messages, data["body"])
         return {"answer": respuesta, "nuevo_estado": "pedido", "session_context": session_context}
 
@@ -145,9 +160,24 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
         session_context["esperando_confirmacion"] = True
         faltantes = que_falta(orden_temporal, campos_platillos_validos)
         content["tiempos_faltantes"] = faltantes
+        content["resumen_completo"] = [
+            {
+                "comida": i + 1,
+                "platillos": [
+                    p for campo, vals in o.get("platillos", {}).items()
+                    for p in (vals if isinstance(vals, list) else [vals])
+                    if p and p not in empty_placeholders
+                ],
+                "monto": o.get("costos", {}).get("monto_total", 0),
+            }
+            for i, o in enumerate(orden_temporal.get("ordenes", []))
+        ]
+        content["monto_total"] = orden_temporal.get("monto_total_general", 0)
+        if config.get('cobro_desechables'):
+            content["aviso_desechables"] = f"Se cobran desechables por ${config.get('precio_desechables', 0)} por comida"
         respuesta = llamar_llm(PROMPT_ATTENTION + str(content), messages, data["body"])
         return {"answer": respuesta, "nuevo_estado": "pedido", "session_context": session_context}
-    
+
     if intencion == "agregar_platillo":
         # Extracción de orden via LLM
         raw = llamar_llm(PROMPT_EXTRAER_ORDEN(menu_data), messages, data["body"])
@@ -162,69 +192,92 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
             respuesta = llamar_llm(CONTEXT + PROMPT_ATTENTION, messages, data["body"])
             return {"answer": respuesta, "nuevo_estado": "pedido", "session_context": session_context}
 
-        # Validar que al menos una orden tiene platillos o extras
         campos_menu_actuales = [c for c in campos_platillos_validos if c != 'a_la_carta']
+        orden_redis = get_orden_temporal(telefono)
 
         if not tiene_contenido(tool_input, campos_platillos_validos):
             logger.debug("Fallback: mensaje sin platillos ni extras | telefono: %s", telefono)
             write_log(telefono, "mensaje_sin_contenido", "El mensaje no contiene platillos ni extras detectables", nivel="warning")
-            faltantes = que_falta(get_orden_temporal(telefono), campos_platillos_validos)
+            faltantes = que_falta(orden_redis, campos_platillos_validos)
             context_falta = {"tiempos_disponibles": faltantes} if faltantes else {}
             respuesta = llamar_llm(PROMPT_ATTENTION + str(context_falta), messages, data["body"])
             return {"answer": respuesta, "nuevo_estado": "pedido", "session_context": session_context}
 
-        # Reconstruir orden como salida del LLM
-        tool_input = reconstruir_tool_input(tool_input, get_orden_temporal(telefono) or {}, campos_platillos_validos, menu_data)
+        # Si el nuevo input es SOLO un extra (sin platillos del menú), agregarlo
+        # directamente a la última orden existente para evitar duplicación.
+        es_puro_extra_nuevo = (
+            not any(tool_input.get(c) not in empty_placeholders for c in campos_menu_actuales) and
+            any(tool_input.get(k) not in empty_placeholders for k in ['extra_1', 'extra_2', 'extra_3', 'a_la_carta'])
+        )
 
-        # De diccionario de listas a lista de diccionarios
-        lista_tool_inputs = expandir_tool_input(tool_input, campos_menu_actuales)
-
-        # Normalizar: 1 platillo solo → extra_1
-        lista_tool_inputs = normalizar_a_extra_si_unico(tool_inputs=lista_tool_inputs, campos_menu_actuales=campos_menu_actuales, campos_platillos_validos=campos_platillos_validos)
-
-        # Acumular en orden_temporal
         from states.generic import construir_orden_temporal, agregar_extra_a_orden, agregar_platillos_a_orden
 
-        # Si ya existe una orden rehidratada en Redis (viene de handler_terminar_pedido),
-        # preservar pedido_grupo y comanda_ids; vaciar ordenes para acumular desde cero.
-        orden_redis = get_orden_temporal(telefono)
-        if orden_redis and any(o.get("comanda_id") for o in orden_redis.get("ordenes", [])):
-            orden_temporal = {
-                "pedido_grupo": orden_redis["pedido_grupo"],
-                "ordenes": [],
-                "total_ordenes": 0,
-                "monto_total_general": 0,
-                "nombre_cliente": orden_redis.get("nombre_cliente"),
-                "_comanda_ids_originales": [
-                    o.get("comanda_id") for o in orden_redis["ordenes"]
-                ]
-            }
-        else:
-            orden_temporal = construir_orden_temporal(None)
-        content = {}
-
-        for tool_input in lista_tool_inputs:
-            if not tiene_contenido(tool_input, campos_platillos_validos):
-                continue
-
-            es_solo_extra = (
-                not any(tool_input.get(campo) not in empty_placeholders for campo in campos_menu_actuales) and
-                any(tool_input.get(k) not in empty_placeholders for k in ['extra_1', 'extra_2', 'extra_3', 'a_la_carta'])
+        if es_puro_extra_nuevo and orden_redis and len(orden_redis.get("ordenes", [])) > 0:
+            orden_temporal = orden_redis
+            orden_temporal, content = agregar_extra_a_orden(
+                orden_temporal, tool_input, config, supabase_client, campos_platillos_validos
             )
+        else:
+            # Reconstruir orden como salida del LLM
+            tool_input = reconstruir_tool_input(tool_input, orden_redis or {}, campos_platillos_validos, menu_data)
 
-            if es_solo_extra and len(lista_tool_inputs) == 1 and len(orden_temporal.get("ordenes", [])) > 0:
-                orden_temporal, content = agregar_extra_a_orden(orden_temporal, tool_input, config, supabase_client, campos_platillos_validos)
+            # De diccionario de listas a lista de diccionarios
+            lista_tool_inputs = expandir_tool_input(tool_input, campos_menu_actuales)
+
+            # Normalizar: 1 platillo solo → extra_1
+            lista_tool_inputs = normalizar_a_extra_si_unico(tool_inputs=lista_tool_inputs, campos_menu_actuales=campos_menu_actuales, campos_platillos_validos=campos_platillos_validos)
+
+            # Si ya existe una orden rehidratada en Redis (viene de handler_terminar_pedido),
+            # preservar pedido_grupo y comanda_ids; vaciar ordenes para acumular desde cero.
+            if orden_redis and any(o.get("comanda_id") for o in orden_redis.get("ordenes", [])):
+                orden_temporal = {
+                    "pedido_grupo": orden_redis["pedido_grupo"],
+                    "ordenes": [],
+                    "total_ordenes": 0,
+                    "monto_total_general": 0,
+                    "nombre_cliente": orden_redis.get("nombre_cliente"),
+                    "_comanda_ids_originales": [
+                        o.get("comanda_id") for o in orden_redis["ordenes"]
+                    ]
+                }
             else:
-                orden_temporal, content = agregar_platillos_a_orden(orden_temporal, tool_input, config, supabase_client, campos_platillos_validos)
+                orden_temporal = construir_orden_temporal(None)
+            content = {}
+
+            for tool_input in lista_tool_inputs:
+                if not tiene_contenido(tool_input, campos_platillos_validos):
+                    continue
+
+                es_solo_extra = (
+                    not any(tool_input.get(campo) not in empty_placeholders for campo in campos_menu_actuales) and
+                    any(tool_input.get(k) not in empty_placeholders for k in ['extra_1', 'extra_2', 'extra_3', 'a_la_carta'])
+                )
+
+                if es_solo_extra and len(lista_tool_inputs) == 1 and len(orden_temporal.get("ordenes", [])) > 0:
+                    orden_temporal, content = agregar_extra_a_orden(orden_temporal, tool_input, config, supabase_client, campos_platillos_validos)
+                else:
+                    orden_temporal, content = agregar_platillos_a_orden(orden_temporal, tool_input, config, supabase_client, campos_platillos_validos)
 
         save_orden_temporal(telefono, orden_temporal)
         session_context["orden"] = orden_temporal
-        get_orden_temporal(telefono)
 
-        # Preguntar si es todo
+        # Preguntar si es todo — incluir resumen completo para que el cliente confirme
         session_context["esperando_confirmacion"] = True
         faltantes = que_falta(orden_temporal, campos_platillos_validos)
         content["tiempos_faltantes"] = faltantes
+        content["resumen_completo"] = [
+            {
+                "comida": i + 1,
+                "platillos": [
+                    p for campo, vals in o.get("platillos", {}).items()
+                    for p in (vals if isinstance(vals, list) else [vals])
+                    if p and p not in empty_placeholders
+                ],
+                "monto": o.get("costos", {}).get("monto_total", 0),
+            }
+            for i, o in enumerate(orden_temporal.get("ordenes", []))
+        ]
+        content["monto_total"] = orden_temporal.get("monto_total_general", 0)
         respuesta = llamar_llm(PROMPT_ATTENTION + str(content), messages, data["body"])
         write_log(telefono, "respuesta_esperando_confirmacion", f"Respuesta generada esperando confirmación: {respuesta}")
         return {"answer": respuesta, "nuevo_estado": "pedido", "session_context": session_context}
