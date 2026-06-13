@@ -188,8 +188,11 @@ class DBCA:
 
     def obtener_pedido_reciente_usuario(self, telefono):
         try:
-            hoy = datetime.now(timezone.utc).date()
-            manana = hoy + timedelta(days=1)
+            # Usar UTC-6 (hora México) para el límite del día
+            ahora_utc = datetime.now(timezone.utc)
+            ahora_cdmx = ahora_utc - timedelta(hours=6)
+            hoy_cdmx = ahora_cdmx.date()
+            manana_cdmx = hoy_cdmx + timedelta(days=1)
 
             response = (
                 self.supabase
@@ -197,8 +200,8 @@ class DBCA:
                 .select("*")
                 .eq("telefono_cliente", telefono)
                 .eq("status", "PENDIENTE")
-                .gte("created_at", f"{hoy.isoformat()}T00:00:00")
-                .lt("created_at", f"{manana.isoformat()}T00:00:00")
+                .gte("created_at", f"{hoy_cdmx.isoformat()}T06:00:00+00:00")
+                .lt("created_at", f"{manana_cdmx.isoformat()}T06:00:00+00:00")
                 .order("created_at", desc=True)
                 .limit(1)
                 .execute()
