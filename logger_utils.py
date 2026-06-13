@@ -15,7 +15,7 @@ def write_log(telefono: str, etiqueta: str, mensaje: str, nivel: str = "info"):
 async def _persist_log(telefono: str, etiqueta: str, mensaje: str, nivel: str):
     try:
         from clients.supabase_client import supabase_client
-        await supabase_client.table("logs").insert({
+        supabase_client.table("logs").insert({
             "telefono": telefono,
             "nivel": nivel,
             "etiqueta": etiqueta,
