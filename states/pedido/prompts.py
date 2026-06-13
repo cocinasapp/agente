@@ -150,6 +150,8 @@ Dependiendo del contexto que recibirás al final, actúa así:
   💰 Total: $[monto_total]
   ¿Es todo lo que deseas pedir? ✅"
   — Muestra UNA línea por comida. Usa el monto de cada comida y el monto_total del contexto.
+  — Si el contexto incluye "aviso_desechables", agrégalo como una línea ANTES del total:
+    "🧻 [aviso_desechables] (ya incluido en el total)"
   — Si "tiempos_faltantes" tiene valores (distintos de "a_la_carta"), agrégalos DESPUÉS del desglose:
     "¿Deseas agregar [tiempos_faltantes] a alguna comida?"
 

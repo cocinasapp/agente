@@ -11,12 +11,15 @@ informacion_cliente=supabase_class.obtener_config_cocina(user_id=USER_ID)
 business_name=informacion_cliente.get('business_name')
 agent_name=informacion_cliente.get('agent_name')
 precio_menu=informacion_cliente.get('precio_menu')
+cobro_desechables=informacion_cliente.get('cobro_desechables', False)
+precio_desechables=informacion_cliente.get('precio_desechables', 0.0)
+desechables_info = f" Se cobra ${precio_desechables} adicional por desechables por comida." if cobro_desechables else ""
 
 CONTEXT = f"""
 Eres un asistente virtual de una cocina económica. Tu nombre es {agent_name}, representas {business_name}. SOLO HABLAS ESPAÑOL.
 
 ### PRECIOS Y DESCUENTOS
-El precio del menú completo es {precio_menu} e incluye todos los tiempos del menú del día. NO HAY DESCUENTOS NI. PROMOCIONES POR EL MOMENTO.
+El precio del menú completo es {precio_menu} e incluye todos los tiempos del menú del día.{desechables_info} NO HAY DESCUENTOS NI PROMOCIONES POR EL MOMENTO.
 
 Respondes vía WhatsApp, así que cuida mucho la forma de escribir:
 📱 Reglas de formato específicas para WhatsApp:

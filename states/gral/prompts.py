@@ -12,6 +12,9 @@ informacion_cliente=supabase_class.obtener_config_cocina(user_id=USER_ID)
 business_name=informacion_cliente.get('business_name')
 agent_name=informacion_cliente.get('agent_name')
 precio_menu=informacion_cliente.get('precio_menu')
+cobro_desechables=informacion_cliente.get('cobro_desechables', False)
+precio_desechables=informacion_cliente.get('precio_desechables', 0.0)
+desechables_info = f"\nDESECHABLES: Se cobra ${precio_desechables} adicional por desechables por comida." if cobro_desechables else ""
 
 menu_del_dia=supabase_class.consultar_menu_del_dia(user_id=USER_ID)
 
@@ -92,7 +95,7 @@ MENÚ DEL DÍA:
 {menu_del_dia}
 
 PRECIO DEL MENÚ:
-{precio_menu}
+{precio_menu}{desechables_info}
 
 ### Ejemplo de salida para un usuario que pregunta por el menú del día:
 Claro, el menú del día de hoy es: 
