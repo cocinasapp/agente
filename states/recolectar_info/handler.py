@@ -57,7 +57,7 @@ def handle_recolectar_info(messages, data, telefono, session_context, supabase_c
         return handle_pedido(messages, data, telefono, session_context, supabase_client)
 
     # Extracción de info via LLM
-    raw = llamar_llm(PROMPT_EXTRAER_INFO, messages, data["body"])
+    raw = llamar_llm(PROMPT_EXTRAER_INFO, messages[-4:], data["body"])
     try:
         raw = raw.strip().replace("```json", "").replace("```", "").strip()
         tool_input = json.loads(raw)
