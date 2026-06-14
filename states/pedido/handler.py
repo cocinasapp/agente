@@ -188,6 +188,35 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
         respuesta = llamar_llm(PROMPT_ATTENTION + str(content), messages, data["body"])
         write_log(telefono, "consulta_precio", f"Consulta de precio atendida: {content}")
         return {"answer": respuesta, "nuevo_estado": "pedido", "session_context": session_context}
+
+    elif intencion == "consulta_orden":
+        orden_temporal = get_orden_temporal(telefono)
+        if not orden_temporal:
+            respuesta = llamar_llm(PROMPT_ATTENTION + str({"status": "sin_orden_activa"}), messages, data["body"])
+            return {"answer": respuesta, "nuevo_estado": "pedido", "session_context": session_context}
+        
+        faltantes = que_falta(orden_temporal, campos_platillos_validos)
+        content = {
+            "resumen_completo": [
+                {
+                    "comida": i + 1,
+                    "platillos": [
+                        p for campo, vals in o.get("platillos", {}).items()
+                        for p in (vals if isinstance(vals, list) else [vals])
+                        if p and p not in empty_placeholders
+                    ],
+                    "monto": o.get("costos", {}).get("monto_total", 0),
+                }
+                for i, o in enumerate(orden_temporal.get("ordenes", []))
+            ],
+            "monto_total": orden_temporal.get("monto_total_general", 0),
+            "tiempos_faltantes": faltantes
+        }
+        if config.get('cobro_desechables'):
+            content["aviso_desechables"] = f"Se cobran desechables por ${config.get('precio_desechables', 0)} por comida"
+        session_context["esperando_confirmacion"] = True
+        respuesta = llamar_llm(PROMPT_ATTENTION + str(content), messages, data["body"])
+        return {"answer": respuesta, "nuevo_estado": "pedido", "session_context": session_context}
     
     elif intencion == "agregar_platillo":
         # Extracción de orden via LLM
