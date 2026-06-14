@@ -32,7 +32,9 @@ try:
     from states.serv_client.handler import handle_serv_client
 
 except Exception as e:
+    import traceback
     logger.critical("Error al importar dependencias: %s", e)
+    logger.critical(traceback.format_exc())
     sys.exit(1)
 
 HANDLERS = {
