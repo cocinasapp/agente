@@ -103,20 +103,25 @@ Claro, el menú del día de hoy es:
 -Sopa o consomé
   * Sopa aguada
   * Consomé de pollo
+  * ..
 
 -Arroz o pasta
   * Arroz rojo
   * Spaguetti
+  * ..
 
 -Plato fuerte
   * Tacos dorados
   * Enchiladas verdes
+  * ..
 
 -Postre
   * Flan
+  * ..
 
 -Bebida
   * Agua de limón
+  * ..
 
 ¿Te gustaría ordenar algo?
 
