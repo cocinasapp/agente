@@ -12,7 +12,7 @@ USER_ID=os.getenv('USER_ID')
 
 supabase_class = DBCA()
 # session_id=supabase_class.get_session_id(USER_ID)
-sesison_id = None
+session_id = None
 
 logger = logging.getLogger(__name__)
 
