@@ -963,10 +963,17 @@ class DBCA:
         }
         return montos
     
+    # def get_session_id(self, user_id):
+    #     query=self.supabase.table(self.table_conversations).select('*').eq('user_id', user_id).execute()
+    #     session_id=query.data[0].get('session_id')
+    #     return session_id
+
+    
     def get_session_id(self, user_id):
-        query=self.supabase.table(self.table_conversations).select('*').eq('user_id', user_id).execute()
-        session_id=query.data[0].get('session_id')
-        return session_id
+        query = self.supabase.table(self.table_conversations).select('*').eq('user_id', user_id).execute()
+        if not query.data:
+            return None
+        return query.data[0].get('session_id')
 
 if __name__=='__main__':
     import os
