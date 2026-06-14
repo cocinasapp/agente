@@ -79,7 +79,7 @@ Dos platillos sueltos:
 {{"Sopa o consomé": null, "Arroz o pasta": null, "Plato fuerte": ["Enchiladas verdes", "Tacos dorados"], "extra_1": null, "extra_2": null, "extra_3": null, "a_la_carta": null}}
 
 Un menú completo con un extra aparte:
-{"Sopa o consomé": ["Sopa aguada"], "Arroz o pasta": ["Arroz"], "Plato fuerte": ["Milanesa de Res"], "Postre": ["Gelatina de Limón"], "Agua": ["Agua de Jamaica"], "extra_1": ["Flan Napolitano"], "extra_2": null, "extra_3": null, "a_la_carta": null}
+{{"Sopa o consomé": ["Sopa aguada"], "Arroz o pasta": ["Arroz"], "Plato fuerte": ["Milanesa de Res"], "Postre": ["Gelatina de Limón"], "Agua": ["Agua de Jamaica"], "extra_1": ["Flan Napolitano"], "extra_2": null, "extra_3": null, "a_la_carta": null}}
 """
 
 PROMPT_RESPONDER_ORDEN = f"""
