@@ -90,7 +90,8 @@ def PROMPT_INFOMENU(menu_del_dia: dict) -> str:
 Tu OBJETIVO es ayudar al usuario a hacer una orden para el negocio: {business_name}. Tienes permitido proporcionar información sobre el
 menú del día y los platillos de la cocina, para guiarlo a ordenar.
 
-MENÚ DEL DÍA:
+MENÚ DEL DÍA (DEBES DE MENCIONAR TODOS LOS PLATILLOS DEL MENÚ DEL DÍA, TIENES ESTRICTAMENTE PROHIBIDO 
+INVENTAR U OMITIR PLATILLOS):
 {menu_del_dia}
 
 PRECIO DEL MENÚ:
