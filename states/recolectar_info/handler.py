@@ -46,13 +46,13 @@ def handle_recolectar_info(messages, data, telefono, session_context, supabase_c
     logger.debug("Intención detectada | telefono: %s | intención: %s", telefono, intencion)
     write_log(telefono, "intencion_info", f"Intención detectada en recolectar_info: {intencion}")
 
-    if intencion == 'agregar_platillo':
+    if "agregar_platillo" in intencion:
         logger.info("Transición interna | recolectar_info → pedido | telefono: %s", telefono)
         write_log(telefono, "transicion_interna", "Transición interna de recolectar_info a pedido por intención de agregar platillo")
         from states.pedido.handler import handle_pedido
         return handle_pedido(messages, data, telefono, session_context, supabase_client)
 
-    elif intencion == "consulta_precio":
+    elif "consulta_precio" in intencion:
         from states.pedido.handler import handle_pedido
         return handle_pedido(messages, data, telefono, session_context, supabase_client)
 

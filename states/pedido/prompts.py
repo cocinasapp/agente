@@ -51,6 +51,9 @@ REGLAS ESTRICTAS:
 - CUANDO HAY MÁS DE UNA COMIDA: TODOS los campos (tiempos del menú Y extra_1/extra_2/extra_3/a_la_carta)
   deben ser listas del MISMO largo (un elemento por comida). Si un campo no aplica para una comida
   específica, usa null en esa posición. NUNCA uses un valor escalar cuando hay múltiples comidas.
+- Si el cliente pide un platillo "extra", "aparte" o "adicional" fuera de las comidas principales,
+  ponlo en extra_1 (o extra_2, extra_3 si ya hay uno). NUNCA preguntes a qué comida pertenece
+  un extra — los extras son independientes de las comidas.
 
 EJEMPLOS DE RESPUESTA:
 
@@ -74,6 +77,9 @@ Dos menús donde un tiempo solo aplica a una comida:
 
 Dos platillos sueltos:
 {{"Sopa o consomé": null, "Arroz o pasta": null, "Plato fuerte": ["Enchiladas verdes", "Tacos dorados"], "extra_1": null, "extra_2": null, "extra_3": null, "a_la_carta": null}}
+
+Un menú completo con un extra aparte:
+{"Sopa o consomé": ["Sopa aguada"], "Arroz o pasta": ["Arroz"], "Plato fuerte": ["Milanesa de Res"], "Postre": ["Gelatina de Limón"], "Agua": ["Agua de Jamaica"], "extra_1": ["Flan Napolitano"], "extra_2": null, "extra_3": null, "a_la_carta": null}
 """
 
 PROMPT_RESPONDER_ORDEN = f"""

@@ -85,7 +85,7 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
     #     respuesta = llamar_llm(PROMPT_RESPONDER_ORDEN + str(content), messages, data["body"])
     #     return {"answer": respuesta, "nuevo_estado": "recolectar_info", "session_context": session_context}
 
-    if intencion == "eliminar_platillo":
+    if "eliminar_platillo" in intencion:
         raw = llamar_llm(PROMPT_EXTRAER_EDICION(menu_data), messages, data["body"])
         try:
             raw = raw.strip().replace("```json", "").replace("```", "").strip()
@@ -131,7 +131,7 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
         respuesta = llamar_llm(PROMPT_ATTENTION + str(content), messages, data["body"])
         return {"answer": respuesta, "nuevo_estado": "pedido", "session_context": session_context}
 
-    elif intencion == "reemplazar_platillo":
+    elif "reemplazar_platillo" in intencion:
         raw = llamar_llm(PROMPT_EXTRAER_MODIFICACION(menu_data), messages, data["body"])
         try:
             raw = raw.strip().replace("```json", "").replace("```", "").strip()
@@ -178,7 +178,7 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
         respuesta = llamar_llm(PROMPT_ATTENTION + str(content), messages, data["body"])
         return {"answer": respuesta, "nuevo_estado": "pedido", "session_context": session_context}
 
-    elif intencion == "consulta_precio":
+    elif "consulta_precio" in intencion:
         menu_precios = {
             platillo["platillo"]: platillo["precio"]
             for tiempo_lista in menu_data.get("menu", {}).values()
@@ -189,7 +189,7 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
         write_log(telefono, "consulta_precio", f"Consulta de precio atendida: {content}")
         return {"answer": respuesta, "nuevo_estado": "pedido", "session_context": session_context}
 
-    elif intencion == "consulta_orden":
+    elif "consulta_orden" in intencion:
         orden_temporal = get_orden_temporal(telefono)
         if not orden_temporal:
             respuesta = llamar_llm(PROMPT_ATTENTION + str({"status": "sin_orden_activa"}), messages, data["body"])
@@ -218,7 +218,7 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
         respuesta = llamar_llm(PROMPT_ATTENTION + str(content), messages, data["body"])
         return {"answer": respuesta, "nuevo_estado": "pedido", "session_context": session_context}
     
-    elif intencion == "agregar_platillo":
+    elif "agregar_platillo" in intencion:
         # Extracción de orden via LLM
         raw = llamar_llm(PROMPT_EXTRAER_ORDEN(menu_data), messages, data["body"])
         try:

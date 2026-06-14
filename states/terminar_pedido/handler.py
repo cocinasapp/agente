@@ -47,7 +47,7 @@ def handle_terminar_pedido(messages, data, telefono, session_context, supabase_c
     logger.debug("Intención terminar_pedido | telefono: %s | resultado: %s", telefono, intencion)
     write_log(telefono, "intencion_terminar_pedido", f"Intención detectada en terminar_pedido: {intencion}")
 
-    if intencion == "modificar_orden":
+    if "modificar_orden" in intencion:
 
         # Traer pedido desde Supabase
         pedido_data = supabase_client.obtener_pedido_reciente_usuario(telefono)
@@ -104,7 +104,7 @@ def handle_terminar_pedido(messages, data, telefono, session_context, supabase_c
         # Delegar a handle_pedido — caso equivalente al flujo normal
         return handle_pedido(messages, data, telefono, session_context, supabase_client)
 
-    elif intencion == "consulta_precio":
+    elif "consulta_precio" in intencion:
         from states.pedido.handler import handle_pedido
         return handle_pedido(messages, data, telefono, session_context, supabase_client)
 
