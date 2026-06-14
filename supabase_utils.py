@@ -11,7 +11,8 @@ TBL_USUARIOS=os.getenv('TBL_USUARIOS')
 USER_ID=os.getenv('USER_ID')
 
 supabase_class = DBCA()
-session_id=supabase_class.get_session_id(USER_ID)
+# session_id=supabase_class.get_session_id(USER_ID)
+sesison_id = None
 
 logger = logging.getLogger(__name__)
 
@@ -42,15 +43,27 @@ def get_estado_desde_supabase(telefono: str):
         return usuario.get("estado_actual", "new")
     return None
 
-def guardar_mensaje(telefono: str, rol: str, mensaje: str, estado: str, user_id:str=USER_ID, session_id:str=session_id):
+# def guardar_mensaje(telefono: str, rol: str, mensaje: str, estado: str, user_id:str=USER_ID, session_id:str=session_id):
+#     supabase_client.table("conversations").insert({
+#         "phone_number": telefono,
+#         "role": rol,
+#         "message": mensaje,
+#         "estado_actual": estado,
+#         "user_id":user_id,
+#         "session_id":session_id,
+#         "type":"text"
+#     }).execute()
+#     logger.debug("Mensaje guardado | phone_number: %s | rol: %s | estado: %s", telefono, rol, estado)
+def guardar_mensaje(telefono: str, rol: str, mensaje: str, estado: str, user_id: str = USER_ID, whatsapp_jid: str = None):
+    session_id = f"fp-chatHistory:{whatsapp_jid}" if whatsapp_jid else None
     supabase_client.table("conversations").insert({
         "phone_number": telefono,
         "role": rol,
         "message": mensaje,
         "estado_actual": estado,
-        "user_id":user_id,
-        "session_id":session_id,
-        "type":"text"
+        "user_id": user_id,
+        "session_id": session_id,
+        "type": "text"
     }).execute()
     logger.debug("Mensaje guardado | phone_number: %s | rol: %s | estado: %s", telefono, rol, estado)
 

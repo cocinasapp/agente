@@ -169,8 +169,10 @@ def dispatch(messages, data, telefono):
     if nuevo_contexto is not None:
         set_session_context(telefono, nuevo_contexto)
 
-    guardar_mensaje(telefono, "user", data["body"], estado_actual)
-    guardar_mensaje(telefono, "assistant", resultado["answer"], nuevo_estado)
+    # guardar_mensaje(telefono, "user", data["body"], estado_actual)
+    # guardar_mensaje(telefono, "assistant", resultado["answer"], nuevo_estado)
+    guardar_mensaje(telefono, "user", data["body"], estado_actual, whatsapp_jid=data["from"])
+    guardar_mensaje(telefono, "assistant", resultado["answer"], nuevo_estado, whatsapp_jid=data["from"])
 
     return resultado
 
