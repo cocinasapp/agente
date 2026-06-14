@@ -104,6 +104,10 @@ def handle_terminar_pedido(messages, data, telefono, session_context, supabase_c
         # Delegar a handle_pedido — caso equivalente al flujo normal
         return handle_pedido(messages, data, telefono, session_context, supabase_client)
 
+    elif intencion == "consulta_precio":
+        from states.pedido.handler import handle_pedido
+        return handle_pedido(messages, data, telefono, session_context, supabase_client)
+
     # ── Flujo normal: persistir pedido ────────────────────────────────────────
     # orden_temporal = get_orden_temporal(telefono)
     orden_temporal = session_context.get("orden") or get_orden_temporal(telefono)

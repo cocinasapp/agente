@@ -52,6 +52,10 @@ def handle_recolectar_info(messages, data, telefono, session_context, supabase_c
         from states.pedido.handler import handle_pedido
         return handle_pedido(messages, data, telefono, session_context, supabase_client)
 
+    elif intencion == "consulta_precio":
+        from states.pedido.handler import handle_pedido
+        return handle_pedido(messages, data, telefono, session_context, supabase_client)
+
     # Extracción de info via LLM
     raw = llamar_llm(PROMPT_EXTRAER_INFO, messages, data["body"])
     try:

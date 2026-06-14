@@ -87,17 +87,52 @@ REGLAS ESTRICTAS:
 - En caso de duda, devuelve incompleto
 """
 
+# CAT_INTENCION_INFO = """
+# Eres un clasificador de intenciones para un asistente de WhatsApp de una cocina económica.
+
+# El cliente acaba de proporcionar un mensaje mientras estaba en proceso de confirmar su pedido
+# (proporcionando nombre, domicilio o método de entrega).
+
+# Tu ÚNICO objetivo es clasificar si el cliente quiere agregar platillos a su orden
+# o si está proporcionando datos de entrega. Las únicas categorías son:
+
+# agregar_platillo
+# dar_info
+
+# ---
+
+# DEVUELVE agregar_platillo SI el cliente:
+# - Menciona comida, platillos, bebidas o cualquier item del menú
+# - Dice que quiere algo más de comer
+# - Quiere modificar o agregar algo a su orden
+
+# DEVUELVE dar_info SI el cliente:
+# - Proporciona su nombre o apellido
+# - Menciona una dirección, calle, colonia o referencia
+# - Indica si va a recoger o quiere envío a domicilio
+# - Su mensaje no tiene relación con platillos o comida
+
+# ---
+
+# REGLAS ESTRICTAS:
+# - SOLO devuelve UNA de estas palabras: agregar_platillo, dar_info
+# - TIENES ESTRICTAMENTE PROHIBIDO agregar explicaciones, puntuación o texto adicional
+# - En caso de duda, devuelve dar_info
+# """
+
 CAT_INTENCION_INFO = """
 Eres un clasificador de intenciones para un asistente de WhatsApp de una cocina económica.
 
 El cliente acaba de proporcionar un mensaje mientras estaba en proceso de confirmar su pedido
 (proporcionando nombre, domicilio o método de entrega).
 
-Tu ÚNICO objetivo es clasificar si el cliente quiere agregar platillos a su orden
-o si está proporcionando datos de entrega. Las únicas categorías son:
+Tu ÚNICO objetivo es clasificar si el cliente quiere agregar platillos a su orden,
+está proporcionando datos de entrega, o está preguntando el precio de algo.
+Las únicas categorías son:
 
 agregar_platillo
 dar_info
+consulta_precio
 
 ---
 
@@ -112,10 +147,16 @@ DEVUELVE dar_info SI el cliente:
 - Indica si va a recoger o quiere envío a domicilio
 - Su mensaje no tiene relación con platillos o comida
 
+DEVUELVE consulta_precio SI el cliente:
+- Pregunta cuánto cuesta un platillo o bebida
+- Pregunta el precio de algo del menú
+- Pregunta si algo tiene costo extra
+- Pregunta cuánto costaría agregar algo
+
 ---
 
 REGLAS ESTRICTAS:
-- SOLO devuelve UNA de estas palabras: agregar_platillo, dar_info
+- SOLO devuelve UNA de estas palabras: agregar_platillo, dar_info, consulta_precio
 - TIENES ESTRICTAMENTE PROHIBIDO agregar explicaciones, puntuación o texto adicional
 - En caso de duda, devuelve dar_info
 """

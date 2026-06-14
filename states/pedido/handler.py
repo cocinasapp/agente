@@ -131,7 +131,7 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
         respuesta = llamar_llm(PROMPT_ATTENTION + str(content), messages, data["body"])
         return {"answer": respuesta, "nuevo_estado": "pedido", "session_context": session_context}
 
-    if intencion == "reemplazar_platillo":
+    elif intencion == "reemplazar_platillo":
         raw = llamar_llm(PROMPT_EXTRAER_MODIFICACION(menu_data), messages, data["body"])
         try:
             raw = raw.strip().replace("```json", "").replace("```", "").strip()
@@ -178,7 +178,18 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
         respuesta = llamar_llm(PROMPT_ATTENTION + str(content), messages, data["body"])
         return {"answer": respuesta, "nuevo_estado": "pedido", "session_context": session_context}
 
-    if intencion == "agregar_platillo":
+    elif intencion == "consulta_precio":
+        menu_precios = {
+            platillo["platillo"]: platillo["precio"]
+            for tiempo_lista in menu_data.get("menu", {}).values()
+            for platillo in tiempo_lista
+        }
+        content = {"menu_precios": menu_precios}
+        respuesta = llamar_llm(PROMPT_ATTENTION + str(content), messages, data["body"])
+        write_log(telefono, "consulta_precio", f"Consulta de precio atendida: {content}")
+        return {"answer": respuesta, "nuevo_estado": "pedido", "session_context": session_context}
+    
+    elif intencion == "agregar_platillo":
         # Extracción de orden via LLM
         raw = llamar_llm(PROMPT_EXTRAER_ORDEN(menu_data), messages, data["body"])
         try:

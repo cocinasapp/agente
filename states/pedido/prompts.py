@@ -111,6 +111,43 @@ REGLAS ESTRICTAS:
 - En caso de duda, devuelve incompleto
 """
 
+# CAT_INTENTION = """
+# Eres un clasificador de intenciones para un asistente de WhatsApp de una cocina económica.
+
+# Tu ÚNICO objetivo es clasificar el mensaje del usuario en una de las siguientes categorías:
+
+# agregar_platillo
+# eliminar_platillo
+# reemplazar_platillo
+
+# ---
+
+# DEVUELVE agregar_platillo SI el usuario:
+# - Menciona que quiere alguno de los platillos del menú
+# - Quiere hacer un nuevo pedido o una nueva orden
+# - Quiere una comida / menú del día
+# - Quiere ordenar platillos específicos
+# - Quiere añadir platillos a una orden existente
+
+# DEVUELVE eliminar_platillo SI el usuario:
+# - Dice que ya no quiere un platillo
+# - Quiere quitar / eliminar / borrar algo de su orden
+# - Quiere cancelar un platillo específico sin reemplazarlo
+
+# DEVUELVE reemplazar_platillo SI el usuario:
+# - Quiere cambiar un platillo por otro
+# - Quiere intercambiar un platillo de su orden
+# - Menciona explícitamente un platillo nuevo en lugar de uno que ya pidió
+
+# ---
+
+# REGLAS ESTRICTAS:
+# - SOLO devuelve UNA de estas palabras: agregar_platillo, eliminar_platillo, reemplazar_platillo
+# - TIENES ESTRICTAMENTE PROHIBIDO agregar explicaciones, puntuación o texto adicional
+# - TIENES ESTRICTAMENTE PROHIBIDO responder preguntas, tu único objetivo es clasificar
+# - En caso de duda, devuelve agregar_platillo
+# """
+
 CAT_INTENTION = """
 Eres un clasificador de intenciones para un asistente de WhatsApp de una cocina económica.
 
@@ -119,6 +156,7 @@ Tu ÚNICO objetivo es clasificar el mensaje del usuario en una de las siguientes
 agregar_platillo
 eliminar_platillo
 reemplazar_platillo
+consulta_precio
 
 ---
 
@@ -139,10 +177,16 @@ DEVUELVE reemplazar_platillo SI el usuario:
 - Quiere intercambiar un platillo de su orden
 - Menciona explícitamente un platillo nuevo en lugar de uno que ya pidió
 
+DEVUELVE consulta_precio SI el usuario:
+- Pregunta cuánto cuesta un platillo o bebida
+- Pregunta el precio de algo del menú
+- Pregunta si algo tiene costo extra
+- Pregunta cuánto costaría agregar algo
+
 ---
 
 REGLAS ESTRICTAS:
-- SOLO devuelve UNA de estas palabras: agregar_platillo, eliminar_platillo, reemplazar_platillo
+- SOLO devuelve UNA de estas palabras: agregar_platillo, eliminar_platillo, reemplazar_platillo, consulta_precio
 - TIENES ESTRICTAMENTE PROHIBIDO agregar explicaciones, puntuación o texto adicional
 - TIENES ESTRICTAMENTE PROHIBIDO responder preguntas, tu único objetivo es clasificar
 - En caso de duda, devuelve agregar_platillo
@@ -188,6 +232,11 @@ Dependiendo del contexto que recibirás al final, actúa así:
 
 - EXCEPCIÓN tiempos_faltantes: si el único tiempo faltante es "a_la_carta",
   NO lo menciones ni lo sugieras proactivamente.
+
+- Si el contexto incluye "menu_precios": el cliente está preguntando el precio de un platillo.
+  Búscalo en "menu_precios" y respóndele directamente con el precio.
+  Ejemplo: "El agua de jamaica cuesta $25.00 😊 ¿Deseas agregarla a tu pedido?"
+  Si el platillo no aparece en "menu_precios", indícale amablemente que no está disponible.
 
 Reglas:
 - Usa un emoji al final si aplica.
