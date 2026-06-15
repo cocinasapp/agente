@@ -54,6 +54,9 @@ REGLAS ESTRICTAS:
 - Si el cliente pide un platillo "extra", "aparte" o "adicional" fuera de las comidas principales,
   ponlo en extra_1 (o extra_2, extra_3 si ya hay uno). NUNCA preguntes a qué comida pertenece
   un extra — los extras son independientes de las comidas.
+- Si el cliente pide un platillo que YA EXISTE en alguna de sus comidas anteriores
+  (visible en el historial) y lo pide como adicional ("y un flan", "otro flan", "uno más"),
+  ponlo en extra_1, NO en su tiempo de menú correspondiente.
 
 EJEMPLOS DE RESPUESTA:
 
