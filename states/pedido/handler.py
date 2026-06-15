@@ -289,6 +289,27 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
             # Normalizar: 1 platillo solo → extra_1
             lista_tool_inputs = normalizar_a_extra_si_unico(tool_inputs=lista_tool_inputs, campos_menu_actuales=campos_menu_actuales, campos_platillos_validos=campos_platillos_validos)
 
+            # Detectar platillos que ya existen en orden_redis y reasignarlos a extra_1
+            if orden_redis:
+                platillos_existentes = {
+                    supabase_client.unaccent_simple(p.lower())
+                    for o in orden_redis.get("ordenes", [])
+                    for vals in o.get("platillos", {}).values()
+                    for p in (vals if isinstance(vals, list) else [vals])
+                    if p and p not in empty_placeholders
+                }
+                for ti in lista_tool_inputs:
+                    for campo in campos_menu_actuales:
+                        val = ti.get(campo)
+                        if val and val not in empty_placeholders:
+                            if supabase_client.unaccent_simple(val.lower()) in platillos_existentes:
+                                # Ya existe — reasignar a extra_1
+                                for ek in ['extra_1', 'extra_2', 'extra_3']:
+                                    if ti.get(ek) in empty_placeholders:
+                                        ti[ek] = val
+                                        ti[campo] = None
+                                        break
+            
             # Si ya existe una orden rehidratada en Redis (viene de handler_terminar_pedido),
             # preservar pedido_grupo y comanda_ids; vaciar ordenes para acumular desde cero.
             if orden_redis and any(o.get("comanda_id") for o in orden_redis.get("ordenes", [])):
