@@ -54,6 +54,7 @@ def get_estado_desde_supabase(telefono: str):
 #         "type":"text"
 #     }).execute()
 #     logger.debug("Mensaje guardado | phone_number: %s | rol: %s | estado: %s", telefono, rol, estado)
+
 def guardar_mensaje(telefono: str, rol: str, mensaje: str, estado: str, user_id: str = USER_ID, whatsapp_jid: str = None):
     session_id = f"fp-chatHistory:{whatsapp_jid}" if whatsapp_jid else None
     supabase_client.table("conversations").insert({
@@ -63,6 +64,7 @@ def guardar_mensaje(telefono: str, rol: str, mensaje: str, estado: str, user_id:
         "estado_actual": estado,
         "user_id": user_id,
         "session_id": session_id,
+        "whatsapp_jid": whatsapp_jid,
         "type": "text"
     }).execute()
     logger.debug("Mensaje guardado | phone_number: %s | rol: %s | estado: %s", telefono, rol, estado)
