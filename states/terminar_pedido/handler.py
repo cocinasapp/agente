@@ -142,6 +142,9 @@ def handle_terminar_pedido(messages, data, telefono, session_context, supabase_c
         else:
             logger.info("Pedido descongelado | telefono: %s | pedido_grupo: %s", telefono, pedido_grupo_modificando)
             write_log(telefono, "pedido_descongelado", f"Pedido descongelado para pedido grupo {pedido_grupo_modificando}", nivel="info")
+    
+    import json
+    print("ORDEN_TEMPORAL:", json.dumps(orden_temporal, indent=2))
  
     estado_entrega, content = persistir_pedido(
         orden_temporal, nombre_completo, telefono, config, supabase_client, campos_platillos_validos,
