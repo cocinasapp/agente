@@ -78,9 +78,16 @@ def agregar_extra_a_orden(orden_temporal, tool_input, config, supabase_client, c
         if val not in ['', '<UNKNOWN>', None]:
             platillos_extra[key] = [val] if not isinstance(val, list) else val
 
+    # costo_orden = supabase_client.determinar_costo_comanda(
+    #     {k: v[0] if isinstance(v, list) and len(v) == 1 else v for k, v in platillos_extra.items()},
+    #     config=config,
+    #     campos_platillos=campos_platillos_validos
+    # )
+    # En agregar_extra_a_orden, antes de llamar determinar_costo_comanda
+    config_sin_desechables = {**config, 'cobro_desechables': False}
     costo_orden = supabase_client.determinar_costo_comanda(
         {k: v[0] if isinstance(v, list) and len(v) == 1 else v for k, v in platillos_extra.items()},
-        config=config,
+        config=config_sin_desechables,
         campos_platillos=campos_platillos_validos
     )
 
