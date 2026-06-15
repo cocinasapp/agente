@@ -114,13 +114,6 @@ def handle_terminar_pedido(messages, data, telefono, session_context, supabase_c
     
     info_entrega = session_context.get("info_entrega", {})
 
-    # Antes de persistir, verificar que no se haya persistido ya
-    from chat_history import get_estado_entrega
-    if get_estado_entrega(telefono):
-        logger.info("Pedido ya persistido anteriormente | telefono: %s", telefono)
-        respuesta = llamar_llm(CONTEXT + PROMPT_ATTENTION, messages, data["body"])
-        return {"answer": respuesta, "nuevo_estado": "terminar_pedido", "session_context": session_context}
-
     if not orden_temporal or not info_esta_completa(info_entrega):
         logger.error(
             "terminar_pedido: faltan datos | orden: %s | info_entrega: %s",
@@ -128,6 +121,13 @@ def handle_terminar_pedido(messages, data, telefono, session_context, supabase_c
         )
         respuesta = llamar_llm(CONTEXT + PROMPT_ATTENTION, messages, data["body"])
         return {"answer": respuesta, "nuevo_estado": "recolectar_info", "session_context": session_context}
+    
+    # Antes de persistir, verificar que no se haya persistido ya
+    from chat_history import get_estado_entrega
+    if get_estado_entrega(telefono):
+        logger.info("Pedido ya persistido anteriormente | telefono: %s", telefono)
+        respuesta = llamar_llm(CONTEXT + PROMPT_ATTENTION, messages, data["body"])
+        return {"answer": respuesta, "nuevo_estado": "terminar_pedido", "session_context": session_context}
 
     nombre_completo = info_entrega.get("nombre_completo")
 

@@ -37,29 +37,68 @@ def construir_orden_temporal(orden_temporal):
         }
     return orden_temporal
 
+# def agregar_extra_a_orden(orden_temporal, tool_input, config, supabase_client, campos_platillos_validos):
+#     ultima_orden = orden_temporal["ordenes"][-1]
+
+#     for key in ['extra_1', 'extra_2', 'extra_3', 'a_la_carta']:
+#         if key in tool_input and tool_input[key] not in ['', '<UNKNOWN>', None]:
+#             # ultima_orden["platillos"][key] = [tool_input[key]]
+#             valor = tool_input[key]
+#             ultima_orden["platillos"][key] = valor if isinstance(valor, list) else [valor]
+
+#     tool_input_recalculo = {}
+#     for tiempo_key, platillos_tiempo in ultima_orden["platillos"].items():
+#         if platillos_tiempo:
+#             tool_input_recalculo[tiempo_key] = platillos_tiempo[0] if len(platillos_tiempo) == 1 else platillos_tiempo
+
+#     costo_anterior = ultima_orden["costos"].get("monto_total", 0)
+#     costo_nuevo = supabase_client.determinar_costo_comanda(tool_input_recalculo, config=config, campos_platillos=campos_platillos_validos)
+#     orden_temporal["monto_total_general"] -= costo_anterior
+#     ultima_orden["costos"] = costo_nuevo
+#     orden_temporal["monto_total_general"] += costo_nuevo.get("monto_total", 0)
+#     orden_temporal["ordenes"][-1] = ultima_orden
+
+#     content = {
+#         "status": "extra_agregado_a_orden_existente",
+#         "orden_numero": ultima_orden["orden_numero"],
+#         "costo_orden_actualizado": costo_nuevo.get("monto_total", 0),
+#         "monto_total_acumulado": orden_temporal["monto_total_general"],
+#     }
+#     if config.get('cobro_desechables'):
+#         content["aviso_desechables"] = f"Se cobran desechables por ${config.get('precio_desechables', 0)} por comida"
+
+#     return orden_temporal, content
+
 def agregar_extra_a_orden(orden_temporal, tool_input, config, supabase_client, campos_platillos_validos):
-    ultima_orden = orden_temporal["ordenes"][-1]
+    extras_keys = ['extra_1', 'extra_2', 'extra_3', 'a_la_carta']
+    
+    platillos_extra = {}
+    for key in extras_keys:
+        val = tool_input.get(key)
+        if val not in ['', '<UNKNOWN>', None]:
+            platillos_extra[key] = [val] if not isinstance(val, list) else val
 
-    for key in ['extra_1', 'extra_2', 'extra_3', 'a_la_carta']:
-        if key in tool_input and tool_input[key] not in ['', '<UNKNOWN>', None]:
-            ultima_orden["platillos"][key] = [tool_input[key]]
+    costo_orden = supabase_client.determinar_costo_comanda(
+        {k: v[0] if isinstance(v, list) and len(v) == 1 else v for k, v in platillos_extra.items()},
+        config=config,
+        campos_platillos=campos_platillos_validos
+    )
 
-    tool_input_recalculo = {}
-    for tiempo_key, platillos_tiempo in ultima_orden["platillos"].items():
-        if platillos_tiempo:
-            tool_input_recalculo[tiempo_key] = platillos_tiempo[0] if len(platillos_tiempo) == 1 else platillos_tiempo
-
-    costo_anterior = ultima_orden["costos"].get("monto_total", 0)
-    costo_nuevo = supabase_client.determinar_costo_comanda(tool_input_recalculo, config=config, campos_platillos=campos_platillos_validos)
-    orden_temporal["monto_total_general"] -= costo_anterior
-    ultima_orden["costos"] = costo_nuevo
-    orden_temporal["monto_total_general"] += costo_nuevo.get("monto_total", 0)
-    orden_temporal["ordenes"][-1] = ultima_orden
+    nueva_orden = {
+        "orden_numero": len(orden_temporal["ordenes"]) + 1,
+        "platillos": platillos_extra,
+        "desechables": False,
+        "costos": costo_orden,
+        "es_extra": True
+    }
+    orden_temporal["ordenes"].append(nueva_orden)
+    orden_temporal["total_ordenes"] = len(orden_temporal["ordenes"])
+    orden_temporal["monto_total_general"] += costo_orden.get("monto_total", 0)
 
     content = {
         "status": "extra_agregado_a_orden_existente",
-        "orden_numero": ultima_orden["orden_numero"],
-        "costo_orden_actualizado": costo_nuevo.get("monto_total", 0),
+        "orden_numero": nueva_orden["orden_numero"],
+        "costo_orden_actualizado": costo_orden.get("monto_total", 0),
         "monto_total_acumulado": orden_temporal["monto_total_general"],
     }
     if config.get('cobro_desechables'):
@@ -174,7 +213,11 @@ def persistir_pedido(
 
     comandas_ids = []
     for orden in orden_temporal["ordenes"]:
-        es_extra_comanda = not any(
+        # es_extra_comanda = not any(
+        #     campo in orden["platillos"] and orden["platillos"][campo]
+        #     for campo in campos_menu_keys
+        # )
+        es_extra_comanda = orden.get("es_extra", False) or not any(
             campo in orden["platillos"] and orden["platillos"][campo]
             for campo in campos_menu_keys
         )
