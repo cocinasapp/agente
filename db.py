@@ -941,13 +941,17 @@ class DBCA:
 
             todos_platillos_norm = [self.unaccent_simple(p.lower()) for p in todos_platillos]
 
+            # monto_estandar = sum(
+            #     item['precio'] for item in costos_platillos
+            #     if any(
+            #         norm in self.unaccent_simple(item['platillo'].lower()) or
+            #         self.unaccent_simple(item['platillo'].lower()) in norm
+            #         for norm in todos_platillos_norm
+            #     )
+            # )
             monto_estandar = sum(
                 item['precio'] for item in costos_platillos
-                if any(
-                    norm in self.unaccent_simple(item['platillo'].lower()) or
-                    self.unaccent_simple(item['platillo'].lower()) in norm
-                    for norm in todos_platillos_norm
-                )
+                if self.unaccent_simple(item['platillo'].lower()) in todos_platillos_norm
             )
             monto_extras = 0
 
