@@ -261,6 +261,12 @@ def persistir_pedido(
     pedido_grupo = orden_temporal["pedido_grupo"]
     orden_temporal["nombre_cliente"] = nombre_completo
     campos_menu_keys = [c for c in campos_platillos_validos if c != 'a_la_carta']
+    # 🔍 DEBUG TEMPORAL
+    import json
+    print(f"🔍 PERSISTIR_PEDIDO | total ordenes a procesar: {len(orden_temporal['ordenes'])}")
+    for idx, o in enumerate(orden_temporal['ordenes']):
+        print(f"  Orden {idx+1}: platillos={json.dumps(o.get('platillos', {}), ensure_ascii=False)} | costos={o.get('costos', {})} | es_extra={o.get('es_extra', False)} | comanda_id={o.get('comanda_id')}")
+
 
     # Inyectar comanda_ids originales por índice solo cuando la orden no tiene comanda_id ya asignado
     # (caso agregar_platillo sobre pedido rehidratado).
@@ -371,18 +377,39 @@ def persistir_pedido(
         "total_ordenes": orden_temporal["total_ordenes"]
     }
 
+    # content = {
+    #     "status": "pedido_guardado_esperando_entrega",
+    #     "nombre_cliente": nombre_completo,
+    #     "pedido_grupo": pedido_grupo,
+    #     "total_ordenes": orden_temporal["total_ordenes"],
+    #     "monto_total": orden_temporal["monto_total_general"],
+    #     "comandas_ids": comandas_ids
+    # }
     content = {
-        "status": "pedido_guardado_esperando_entrega",
-        "nombre_cliente": nombre_completo,
-        "pedido_grupo": pedido_grupo,
-        "total_ordenes": orden_temporal["total_ordenes"],
-        "monto_total": orden_temporal["monto_total_general"],
-        "comandas_ids": comandas_ids,
+    "status": "pedido_guardado_esperando_entrega",
+    "nombre_cliente": nombre_completo,
+    "pedido_grupo": pedido_grupo,
+    "total_ordenes": orden_temporal["total_ordenes"],
+    "monto_total": orden_temporal["monto_total_general"],
+    "comandas_ids": comandas_ids,
+    "resumen_completo": [
+            {
+                "comida": i + 1,
+                "platillos": [
+                    p for vals in orden.get("platillos", {}).values()
+                    for p in (vals if isinstance(vals, list) else [vals])
+                    if p and p not in ['', '<UNKNOWN>', None]
+                ],
+                "monto": orden.get("costos", {}).get("monto_total", 0),
+            }
+            for i, orden in enumerate(orden_temporal["ordenes"])
+        ],
     }
     if config.get('cobro_desechables'):
         content["aviso_desechables"] = f"Se cobran desechables por ${config.get('precio_desechables', 0)} por comida"
 
     return estado_entrega, content
+
 
 def orden_esta_completa(orden_temporal: dict) -> bool:
     """
