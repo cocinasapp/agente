@@ -263,9 +263,10 @@ def persistir_pedido(
     campos_menu_keys = [c for c in campos_platillos_validos if c != 'a_la_carta']
     # 🔍 DEBUG TEMPORAL
     import json
-    print(f"🔍 PERSISTIR_PEDIDO | total ordenes a procesar: {len(orden_temporal['ordenes'])}")
+    # print(f"🔍 PERSISTIR_PEDIDO | total ordenes a procesar: {len(orden_temporal['ordenes'])}")
+    logger.info(f"🔍 PERSISTIR_PEDIDO | total ordenes a procesar: {len(orden_temporal['ordenes'])}")
     for idx, o in enumerate(orden_temporal['ordenes']):
-        print(f"  Orden {idx+1}: platillos={json.dumps(o.get('platillos', {}), ensure_ascii=False)} | costos={o.get('costos', {})} | es_extra={o.get('es_extra', False)} | comanda_id={o.get('comanda_id')}")
+        logger.info(f"  Orden {idx+1}: platillos={json.dumps(o.get('platillos', {}), ensure_ascii=False)} | costos={o.get('costos', {})} | es_extra={o.get('es_extra', False)} | comanda_id={o.get('comanda_id')}")
 
 
     # Inyectar comanda_ids originales por índice solo cuando la orden no tiene comanda_id ya asignado
