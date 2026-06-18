@@ -22,7 +22,7 @@ def handle_new(messages, data, telefono, session_context):
 
     if 'gral' in cat_intention:
         menu_del_dia = DBCA().consultar_menu_del_dia(user_id=os.getenv('USER_ID'))
-        print("Menu del día:", menu_del_dia)
+        write_log(telefono, "menu_del_dia", f"Menu del día: {menu_del_dia}")
         respuesta = llamar_llm(CONTEXT + PROMPT_INFOMENU(menu_del_dia) + f"{session_context.get('nombre_usuario', '')}", messages, data["body"])
         nuevo_estado = "gral"
 

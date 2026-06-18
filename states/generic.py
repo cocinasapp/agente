@@ -167,7 +167,7 @@ def agregar_platillos_a_orden_0(orden_temporal, tool_input, config, supabase_cli
 
     return orden_temporal, content
 
-def agregar_platillos_a_orden(orden_temporal, tool_input, config, supabase_client, campos_platillos_validos):
+def agregar_platillos_a_orden_1(orden_temporal, tool_input, config, supabase_client, campos_platillos_validos):
     nueva_comida = supabase_client.construir_platillos_dict(tool_input, campos_platillos_validos)
  
     costo_orden = supabase_client.determinar_costo_comanda(tool_input, config=config, campos_platillos=campos_platillos_validos)
@@ -192,6 +192,63 @@ def agregar_platillos_a_orden(orden_temporal, tool_input, config, supabase_clien
     if config.get('cobro_desechables'):
         content["aviso_desechables"] = f"Se cobran desechables por ${config.get('precio_desechables', 0)} por comida"
  
+    return orden_temporal, content
+
+def agregar_extra_a_orden(orden_temporal, tool_input, config, supabase_client, campos_platillos_validos):
+    extras_keys = ['extra_1', 'extra_2', 'extra_3', 'a_la_carta']
+    
+    platillos_extra = {}
+    for key in extras_keys:
+        val = tool_input.get(key)
+        if val not in ['', '<UNKNOWN>', None]:
+            platillos_extra[key] = [val] if not isinstance(val, list) else val
+
+    # Agregar el extra a la última orden existente
+    ultima_orden = orden_temporal["ordenes"][-1]
+    
+    for key, val in platillos_extra.items():
+        # Buscar slot libre si ya hay extras en esa orden
+        if key not in ultima_orden["platillos"] or ultima_orden["platillos"].get(key) in [None, [], ['']]:
+            ultima_orden["platillos"][key] = val
+        else:
+            # Slot ocupado, buscar el siguiente libre
+            for ek in extras_keys:
+                # if ultima_orden["platillos"].get(ek) in [None, [], [''], empty_placeholders]:
+                if ultima_orden["platillos"].get(ek) in empty_placeholders or ultima_orden["platillos"].get(ek) in [[], [''], None]:
+                    ultima_orden["platillos"][ek] = val
+                    break
+
+    # Recalcular costo de esa orden con el extra incluido
+    config_sin_desechables = {**config, 'cobro_desechables': False}
+    tool_input_recalculo = {}
+    for campo, vals in ultima_orden["platillos"].items():
+        if isinstance(vals, list) and vals:
+            tool_input_recalculo[campo] = vals[0]
+        elif vals and vals not in empty_placeholders:
+            tool_input_recalculo[campo] = vals
+
+    costo_orden = supabase_client.determinar_costo_comanda(
+        tool_input_recalculo,
+        config=config_sin_desechables,
+        campos_platillos=campos_platillos_validos
+    )
+
+    # Actualizar costo de la última orden y el total general
+    monto_anterior = ultima_orden.get("costos", {}).get("monto_total", 0)
+    ultima_orden["costos"] = costo_orden
+    orden_temporal["monto_total_general"] = (
+        orden_temporal["monto_total_general"] - monto_anterior + costo_orden.get("monto_total", 0)
+    )
+
+    content = {
+        "status": "extra_agregado_a_orden_existente",
+        "orden_numero": ultima_orden["orden_numero"],
+        "costo_orden_actualizado": costo_orden.get("monto_total", 0),
+        "monto_total_acumulado": orden_temporal["monto_total_general"],
+    }
+    if config.get('cobro_desechables'):
+        content["aviso_desechables"] = f"Se cobran desechables por ${config.get('precio_desechables', 0)} por comida"
+
     return orden_temporal, content
 
 def persistir_pedido(

@@ -1,3 +1,4 @@
+# python3 -m chat_history
 
 import json, logging, os, tiktoken
 from clients.redis_client import redis_client
@@ -287,4 +288,5 @@ if __name__ == "__main__":
         level=logging.INFO,
         format="%(asctime)s | %(levelname)s | %(name)s | %(message)s"
     )
-    reset_chat_history('5215566098295')
+    # reset_chat_history('5215566098295')
+    listar_chat_histories(redis_client=redis_client)

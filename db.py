@@ -84,7 +84,7 @@ class DBCA:
         except Exception as error:
                 print(f"Error al consultar '{table_name}': {error}")
                 return []
-        
+
     def update_data(
             self,
             table: str,
@@ -745,7 +745,7 @@ class DBCA:
             print(f"❌ Error en editar_comanda: {e}")
             write_log("system", "editar_comanda_error", f"Error al editar comanda {comanda_id}: {str(e)}.", nivel="error")
             return {"ok": False, "error": str(e)}
-    
+
     def consultar_menu_del_dia(self, user_id=None):
         try:
             if user_id is None:
@@ -966,13 +966,12 @@ class DBCA:
             'monto_total': monto_estandar + monto_extras + monto_desechables
         }
         return montos
-    
+
     # def get_session_id(self, user_id):
     #     query=self.supabase.table(self.table_conversations).select('*').eq('user_id', user_id).execute()
     #     session_id=query.data[0].get('session_id')
     #     return session_id
 
-    
     def get_session_id(self, user_id):
         query = self.supabase.table(self.table_conversations).select('*').eq('user_id', user_id).execute()
         if not query.data:

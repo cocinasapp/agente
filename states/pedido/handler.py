@@ -35,7 +35,6 @@ supabase_class = DBCA()
 
 logger = logging.getLogger(__name__)
 
-
 def handle_pedido(messages, data, telefono, session_context, supabase_client=supabase_class):
 
     if 'nombre_usuario' not in session_context:

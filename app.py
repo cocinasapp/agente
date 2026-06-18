@@ -135,12 +135,11 @@ async def notify_status_change(request: Request):
         user_id = record.get('user_id')
 
         if status not in ['EN_PROCESO', 'ENVIADO']:
-            print(f"⏭️ Status '{status}' ignorado")
             write_log("system", "info_webhook_ignored", f"Status '{status}' ignorado en payload: {payload}", nivel="info")
             return JSONResponse(content={"status": "ignored"}, status_code=200)
 
         if not telefono_cliente:
-            print(f"⚠️ No hay teléfono - comanda: {record.get('id')}")
+            write_log("system", "info_webhook_no_phone", f"No hay teléfono en la comanda: {record.get('id')}", nivel="warning")
             return JSONResponse(content={"status": "no_phone"}, status_code=200)
 
         # NUEVO: lookup de credenciales por user_id
