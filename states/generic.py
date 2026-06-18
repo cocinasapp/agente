@@ -69,7 +69,7 @@ def construir_orden_temporal(orden_temporal):
 
 #     return orden_temporal, content
 
-def agregar_extra_a_orden(orden_temporal, tool_input, config, supabase_client, campos_platillos_validos):
+def agregar_extra_a_orden1(orden_temporal, tool_input, config, supabase_client, campos_platillos_validos):
     extras_keys = ['extra_1', 'extra_2', 'extra_3', 'a_la_carta']
     
     platillos_extra = {}
@@ -167,7 +167,7 @@ def agregar_platillos_a_orden_0(orden_temporal, tool_input, config, supabase_cli
 
     return orden_temporal, content
 
-def agregar_platillos_a_orden_1(orden_temporal, tool_input, config, supabase_client, campos_platillos_validos):
+def agregar_platillos_a_orden(orden_temporal, tool_input, config, supabase_client, campos_platillos_validos):
     nueva_comida = supabase_client.construir_platillos_dict(tool_input, campos_platillos_validos)
  
     costo_orden = supabase_client.determinar_costo_comanda(tool_input, config=config, campos_platillos=campos_platillos_validos)
@@ -196,29 +196,27 @@ def agregar_platillos_a_orden_1(orden_temporal, tool_input, config, supabase_cli
 
 def agregar_extra_a_orden(orden_temporal, tool_input, config, supabase_client, campos_platillos_validos):
     extras_keys = ['extra_1', 'extra_2', 'extra_3', 'a_la_carta']
-    
+
     platillos_extra = {}
     for key in extras_keys:
         val = tool_input.get(key)
         if val not in ['', '<UNKNOWN>', None]:
             platillos_extra[key] = [val] if not isinstance(val, list) else val
 
-    # Agregar el extra a la última orden existente
+    # Agregar el extra a la última orden existente (no crear orden nueva)
     ultima_orden = orden_temporal["ordenes"][-1]
-    
-    for key, val in platillos_extra.items():
-        # Buscar slot libre si ya hay extras en esa orden
-        if key not in ultima_orden["platillos"] or ultima_orden["platillos"].get(key) in [None, [], ['']]:
-            ultima_orden["platillos"][key] = val
-        else:
-            # Slot ocupado, buscar el siguiente libre
-            for ek in extras_keys:
-                # if ultima_orden["platillos"].get(ek) in [None, [], [''], empty_placeholders]:
-                if ultima_orden["platillos"].get(ek) in empty_placeholders or ultima_orden["platillos"].get(ek) in [[], [''], None]:
-                    ultima_orden["platillos"][ek] = val
-                    break
 
-    # Recalcular costo de esa orden con el extra incluido
+    for key, val in platillos_extra.items():
+        slot_libre = next(
+            (ek for ek in extras_keys
+             if ultima_orden["platillos"].get(ek) in empty_placeholders
+             or ultima_orden["platillos"].get(ek) in [[], ['']]),
+            None
+        )
+        if slot_libre:
+            ultima_orden["platillos"][slot_libre] = val
+
+    # Recalcular costo de esa orden completa (platillos originales + extra nuevo)
     config_sin_desechables = {**config, 'cobro_desechables': False}
     tool_input_recalculo = {}
     for campo, vals in ultima_orden["platillos"].items():
@@ -233,7 +231,7 @@ def agregar_extra_a_orden(orden_temporal, tool_input, config, supabase_client, c
         campos_platillos=campos_platillos_validos
     )
 
-    # Actualizar costo de la última orden y el total general
+    # Actualizar costo de la última orden y el total general (resta lo viejo, suma lo nuevo)
     monto_anterior = ultima_orden.get("costos", {}).get("monto_total", 0)
     ultima_orden["costos"] = costo_orden
     orden_temporal["monto_total_general"] = (
