@@ -236,6 +236,41 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
             return {"answer": respuesta, "nuevo_estado": "pedido", "session_context": session_context}
         logger.info("TOOL_INPUT_EXTRAIDO | telefono: %s | tool_input=%s", telefono, tool_input)
 
+        # Si el LLM reconstruyó platillos que YA EXISTEN en la orden actual (alucinación
+        # del extractor re-leyendo el historial), los descartamos del tool_input.
+        # Solo nos quedamos con lo que es genuinamente nuevo.
+        orden_redis_check = get_orden_temporal(telefono)
+        if orden_redis_check and orden_redis_check.get("ordenes"):
+            platillos_existentes_check = {
+                supabase_client.unaccent_simple(p.lower())
+                for o in orden_redis_check.get("ordenes", [])
+                for vals in o.get("platillos", {}).values()
+                for p in (vals if isinstance(vals, list) else [vals])
+                if p and p not in empty_placeholders
+            }
+
+            for campo, valor in list(tool_input.items()):
+                if campo in ['extra_1', 'extra_2', 'extra_3', 'a_la_carta']:
+                    continue
+                if valor in empty_placeholders:
+                    continue
+
+                valores_lista = valor if isinstance(valor, list) else [valor]
+                valores_filtrados = [
+                    v for v in valores_lista
+                    if v and v not in empty_placeholders
+                    and supabase_client.unaccent_simple(v.lower()) not in platillos_existentes_check
+                ]
+
+                if not valores_filtrados:
+                    tool_input[campo] = None
+                elif len(valores_filtrados) == 1 and not isinstance(valor, list):
+                    tool_input[campo] = valores_filtrados[0]
+                else:
+                    tool_input[campo] = valores_filtrados
+
+            logger.info("TOOL_INPUT_FILTRADO_DUPLICADOS | telefono: %s | tool_input=%s", telefono, tool_input)
+
         campos_menu_actuales = [c for c in campos_platillos_validos if c != 'a_la_carta']
         orden_redis = get_orden_temporal(telefono)
 
