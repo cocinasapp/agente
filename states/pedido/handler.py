@@ -150,7 +150,6 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
             write_log(telefono, "sin_orden_activa", "No hay orden activa en pedido")
             return {"answer": respuesta, "nuevo_estado": "pedido", "session_context": session_context}
     
-        import json
         logger.info("ANTES_REEMPLAZAR | cambios=%s | ordenes=%s", 
                     tool_input_modificacion["cambios"],
                     json.dumps([o.get("platillos") for o in orden_temporal.get("ordenes", [])], ensure_ascii=False))
