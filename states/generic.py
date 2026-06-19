@@ -724,6 +724,8 @@ def reemplazar_platillos_en_orden(orden_temporal, cambios, campos_platillos_vali
             for item in items:
                 od[campo] = item  # una orden tiene un platillo por campo
         ordenes.append(od)
+    import logging
+    logging.getLogger(__name__).info("ORDENES_PLANAS | %s", ordenes)
 
     # Aplicar cada cambio [original, nuevo] a la primera orden que contenga original
     for cambio in cambios:
@@ -767,6 +769,7 @@ def reemplazar_platillos_en_orden(orden_temporal, cambios, campos_platillos_vali
         ordenes_limpias.append(campos_vistos)
         if desbordamiento:
             ordenes_limpias.append(desbordamiento)
+    logging.getLogger(__name__).info("ORDENES_LIMPIAS_POST_COLISION | %s", ordenes_limpias)
 
     # Normalizar: órdenes con un solo platillo de menú → extra
     # Reutilizamos la lógica de normalizar_a_extra_si_unico adaptada a dicts planos

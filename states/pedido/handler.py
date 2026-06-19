@@ -149,6 +149,11 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
             respuesta = llamar_llm(PROMPT_ATTENTION + str({"status": "sin_orden_activa"}), messages, data["body"])
             write_log(telefono, "sin_orden_activa", "No hay orden activa en pedido")
             return {"answer": respuesta, "nuevo_estado": "pedido", "session_context": session_context}
+    
+        import json
+        logger.info("ANTES_REEMPLAZAR | cambios=%s | ordenes=%s", 
+                    tool_input_modificacion["cambios"],
+                    json.dumps([o.get("platillos") for o in orden_temporal.get("ordenes", [])], ensure_ascii=False))
 
         orden_temporal, content = reemplazar_platillos_en_orden(
             orden_temporal, tool_input_modificacion["cambios"], campos_platillos_validos, supabase_client, config
