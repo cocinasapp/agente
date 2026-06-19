@@ -12,7 +12,7 @@ ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL_NAME", "claude-sonnet-4-6")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5.4-2026-03-05")
 OPENAI_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", 0.1))
 
-def llamar_llm(prompt_sistema: str, messages: list, mensaje_usuario: str, anthropic: bool = True) -> str:
+def llamar_llm(prompt_sistema: str, messages: list, mensaje_usuario: str, anthropic: bool = False) -> str:
 
     if anthropic:
 
