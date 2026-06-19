@@ -234,6 +234,7 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
             write_log(telefono, "json_invalido_orden", f"JSON inválido en extracción de orden: {raw} | error: {e}")
             respuesta = llamar_llm(CONTEXT + PROMPT_ATTENTION, messages, data["body"])
             return {"answer": respuesta, "nuevo_estado": "pedido", "session_context": session_context}
+        logger.info("TOOL_INPUT_EXTRAIDO | telefono: %s | tool_input=%s", telefono, tool_input)
 
         campos_menu_actuales = [c for c in campos_platillos_validos if c != 'a_la_carta']
         orden_redis = get_orden_temporal(telefono)
@@ -274,6 +275,7 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
             not any(tool_input.get(c) not in empty_placeholders for c in campos_menu_actuales) and
             any(tool_input.get(k) not in empty_placeholders for k in ['extra_1', 'extra_2', 'extra_3', 'a_la_carta'])
         )
+        logger.info("ES_PURO_EXTRA_NUEVO | telefono: %s | resultado=%s | orden_redis_ordenes=%s", telefono, es_puro_extra_nuevo, len(orden_redis.get("ordenes", [])) if orden_redis else 0)
 
         from states.generic import construir_orden_temporal, agregar_extra_a_orden, agregar_platillos_a_orden
 
