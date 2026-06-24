@@ -134,6 +134,17 @@ def procesar_mensajes_entrantes(json_data):
 
     messages_data = json_data['data']['messages']
 
+    # data = {
+    #     'id':        messages_data.get('id', ''),
+    #     'from':      messages_data.get('remoteJid', ''),
+    #     'to':        json_data.get('sessionId', ''),
+    #     'body':      messages_data.get('messageBody', ''),
+    #     'fromMe':    messages_data.get('key', {}).get('fromMe', False),
+    #     'type':      'chat',
+    #     'pushName':  messages_data.get('pushName', ''),
+    #     'timestamp': messages_data.get('messageTimestamp', 0),
+    #     'media':     ''
+    # }
     data = {
         'id':        messages_data.get('id', ''),
         'from':      messages_data.get('remoteJid', ''),
@@ -143,7 +154,8 @@ def procesar_mensajes_entrantes(json_data):
         'type':      'chat',
         'pushName':  messages_data.get('pushName', ''),
         'timestamp': messages_data.get('messageTimestamp', 0),
-        'media':     ''
+        'media':     '',
+        'telefono_real': messages_data.get('key', {}).get('cleanedSenderPn', '') or messages_data.get('remoteJid', '').split('@')[0],  # NUEVO
     }
 
     if 'message' in messages_data:
