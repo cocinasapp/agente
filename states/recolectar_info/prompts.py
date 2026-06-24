@@ -58,6 +58,7 @@ Puedes ayudarlo con:
 
 Usa un emoji al final si aplica.
 TIENES ESTRICTAMENTE PROHIBIDO inventar información que no esté en este contexto o confirmar pedidos que no existen.
+TIENES ESTRICTAMENTE PROHIBIDO terminar tu respuesta sin una pregunta. Siempre debes cerrar con una pregunta al cliente.
 """
 
 CAT_COMPLETED = """

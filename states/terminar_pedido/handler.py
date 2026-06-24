@@ -102,6 +102,7 @@ def handle_terminar_pedido(messages, data, telefono, session_context, supabase_c
         session_context["pedido_grupo_modificando"] = pedido_grupo
 
         # Delegar a handle_pedido — caso equivalente al flujo normal
+        from states.pedido.handler import handle_pedido
         return handle_pedido(messages, data, telefono, session_context, supabase_client)
 
     elif "consulta_precio" in intencion:
@@ -124,7 +125,7 @@ def handle_terminar_pedido(messages, data, telefono, session_context, supabase_c
     
     # Antes de persistir, verificar que no se haya persistido ya
     from chat_history import get_estado_entrega
-    if get_estado_entrega(telefono):
+    if get_estado_entrega(telefono) and not session_context.get("pedido_grupo_modificando"):
         logger.info("Pedido ya persistido anteriormente | telefono: %s", telefono)
         respuesta = llamar_llm(CONTEXT + PROMPT_ATTENTION, messages, data["body"])
         return {"answer": respuesta, "nuevo_estado": "terminar_pedido", "session_context": session_context}

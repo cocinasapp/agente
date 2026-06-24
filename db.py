@@ -991,8 +991,30 @@ if __name__=='__main__':
     supabase_class = DBCA()
     # informacion_cliente=supabase_class.obtener_config_cocina(user_id=USER_ID)
     # menu_del_dia=supabase_class.consultar_menu_del_dia(user_id=USER_ID)
-    # supabase_class.obtener_pedido_reciente_usuario(telefono='2422341152')
-    # print(
-    # )
-    menu_del_dia = supabase_class.consultar_menu_del_dia(user_id=USER_ID)
-    print("Menu del día:", menu_del_dia)
+    # supabase_class.obtener_pedido_reciente_usuario(telefono='4090296813')
+
+    breakpoint()
+    pedido = supabase_class.obtener_pedido_reciente_usuario(telefono='8866002461')
+    pedido_grupo = pedido["pedido_grupo"]
+    comandas = supabase_class.obtener_comandas_con_platillos(pedido_grupo)
+
+    # menu_del_dia = supabase_class.consultar_menu_del_dia(user_id=USER_ID)
+    # print("Menu del día:", menu_del_dia)
+
+    # response = supabase_client.table("tbl_cocina_comandas") \
+    #     .select("telefono_cliente, created_at") \
+    #     .order("created_at", desc=True) \
+    #     .limit(1) \
+    #     .execute()
+
+    # if response.data:
+    #     print(response.data[0])
+    # else:
+    #     print("No hay comandas.")
+
+    response = supabase_client.table("tbl_cocina_comandas") \
+        .select("telefono_cliente, status, created_at") \
+        .order("created_at", desc=True) \
+        .limit(1) \
+        .execute()
+    breakpoint()
