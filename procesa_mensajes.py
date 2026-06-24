@@ -122,6 +122,7 @@ def borrar_memoria(telefono_jid: str, telefono: str):
 # ============================================================================
 
 def procesar_mensajes_entrantes(json_data):
+    logger.info(f"📦 PAYLOAD CRUDO: {json_data}")   # <--- aquí
     eventos_validos = ['messages.received', 'messages-personal.received']
 
     if json_data.get('event') not in eventos_validos:
