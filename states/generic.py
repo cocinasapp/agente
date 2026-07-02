@@ -28,8 +28,7 @@ def construir_orden_temporal(orden_temporal):
             "pedido_grupo": str(uuid.uuid4()),
             "ordenes": [],
             "total_ordenes": 0,
-            "monto_total_general": 0,
-            "nombre_cliente": None
+            "monto_total_general": 0
         }
     return orden_temporal
 
@@ -255,7 +254,6 @@ def persistir_pedido(
         info_entrega=None
         ):
     pedido_grupo = orden_temporal["pedido_grupo"]
-    orden_temporal["nombre_cliente"] = nombre_completo
     campos_menu_keys = [c for c in campos_platillos_validos if c != 'a_la_carta']
     # 🔍 DEBUG TEMPORAL
     import json
@@ -917,8 +915,7 @@ def rehidratar_orden_desde_supabase(pedido_data, config, supabase_client, campos
         'pedido_grupo': pedido_grupo,
         'ordenes': ordenes,
         'total_ordenes': len(ordenes),
-        'monto_total_general': monto_total_general,
-        'nombre_cliente': cliente_nombre
+        'monto_total_general': monto_total_general
     }
 
     return orden_temporal

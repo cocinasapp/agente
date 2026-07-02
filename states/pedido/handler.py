@@ -358,7 +358,6 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
                     "ordenes": [],
                     "total_ordenes": 0,
                     "monto_total_general": 0,
-                    "nombre_cliente": orden_redis.get("nombre_cliente"),
                     "_comanda_ids_originales": [
                         o.get("comanda_id") for o in orden_redis["ordenes"]
                     ]
