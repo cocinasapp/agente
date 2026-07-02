@@ -99,7 +99,7 @@ def handle_terminar_pedido(messages, data, telefono, session_context, supabase_c
         else:
             logger.info("Pedido congelado | telefono: %s | pedido_grupo: %s", telefono, pedido_grupo)
             write_log(telefono, "pedido_congelado", f"Pedido congelado para pedido grupo {pedido_grupo} mientras se procesa modificación", nivel="info")
-        session_context["pedido_grupo_modificando"] = pedido_grupo
+        session_context.setdefault("flow_state", {})["pedido_grupo_modificando"] = pedido_grupo
 
         # Delegar a handle_pedido — caso equivalente al flujo normal
         from states.pedido.handler import handle_pedido
@@ -125,7 +125,7 @@ def handle_terminar_pedido(messages, data, telefono, session_context, supabase_c
     
     # Antes de persistir, verificar que no se haya persistido ya
     from chat_history import get_estado_entrega
-    if get_estado_entrega(telefono) and not session_context.get("pedido_grupo_modificando"):
+    if get_estado_entrega(telefono) and not session_context.get("flow_state", {}).get("pedido_grupo_modificando"):
         logger.info("Pedido ya persistido anteriormente | telefono: %s", telefono)
         respuesta = llamar_llm(CONTEXT + PROMPT_ATTENTION, messages, data["body"])
         return {"answer": respuesta, "nuevo_estado": "terminar_pedido", "session_context": session_context}
@@ -135,7 +135,8 @@ def handle_terminar_pedido(messages, data, telefono, session_context, supabase_c
     # FINALIZAR
     # Se carga orden temporal a Supabase
     # Si venimos de una modificación, descongelar el pedido antes de persistir
-    pedido_grupo_modificando = session_context.pop("pedido_grupo_modificando", None)
+    pedido_grupo_modificando = session_context.get("flow_state", {}).get("pedido_grupo_modificando")
+    session_context.setdefault("flow_state", {})["pedido_grupo_modificando"] = None
     if pedido_grupo_modificando:
         if not supabase_client.descongelar_pedido(pedido_grupo_modificando):
             logger.error("Fallo al descongelar pedido | telefono: %s | pedido_grupo: %s", telefono, pedido_grupo_modificando)

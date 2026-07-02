@@ -36,10 +36,10 @@ def handle_recolectar_info(messages, data, telefono, session_context, supabase_c
 
     # Si venimos de una edición de pedido ya confirmado, la info_entrega ya existe.
     # Saltamos directo a terminar_pedido para aplicar los cambios.
-    if 'pedido_grupo_modificando' in session_context:
+    if session_context.get("flow_state", {}).get("pedido_grupo_modificando"):
         logger.info("Flujo de edición detectado | pedido_grupo: %s | telefono: %s",
-                    session_context['pedido_grupo_modificando'], telefono)
-        write_log(telefono, "flujo_edicion_detectado", f"Flujo de edición detectado para pedido grupo {session_context['pedido_grupo_modificando']}")
+                    session_context["flow_state"]["pedido_grupo_modificando"], telefono)
+        write_log(telefono, "flujo_edicion_detectado", f"Flujo de edición detectado para pedido grupo {session_context['flow_state']['pedido_grupo_modificando']}")
         from states.terminar_pedido.handler import handle_terminar_pedido
         return handle_terminar_pedido(messages, data, telefono, session_context)
     

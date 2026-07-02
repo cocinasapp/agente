@@ -47,13 +47,13 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
     # breakpoint()
     # print('Esperando confirmacion')
     # Esperando confirmación
-    if session_context.get("esperando_confirmacion"):
+    if session_context.get("flow_state", {}).get("esperando_confirmacion"):
         confirmacion = llamar_llm(CAT_CONFIRMACION, messages, data["body"]).strip().lower()
         logger.debug("Confirmación | telefono: %s | resultado: %s", telefono, confirmacion)
         write_log(telefono, "confirmacion", f"Confirmación detectada en pedido: {confirmacion}")
 
         if confirmacion == "confirma":
-            session_context.pop("esperando_confirmacion", None)
+            session_context.setdefault("flow_state", {})["esperando_confirmacion"] = False
             from states.recolectar_info.prompts import PROMPT_ATTENTION as PROMPT_ATTENTION_INFO
             orden_temporal = get_orden_temporal(telefono)
             faltantes = que_falta(orden_temporal, campos_platillos_validos)
@@ -66,7 +66,7 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
             write_log(telefono, "respuesta_estado_recolectar_info", f"Respuesta generada en recolectar_info: {respuesta}")
             return {"answer": respuesta, "nuevo_estado": "recolectar_info", "session_context": session_context}
 
-        session_context.pop("esperando_confirmacion", None)
+        session_context.setdefault("flow_state", {})["esperando_confirmacion"] = False
 
     # Clasificar intención
     intencion = llamar_llm(CAT_INTENTION, messages, data["body"]).strip().lower()
@@ -109,7 +109,7 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
         save_orden_temporal(telefono, orden_temporal)
         session_context["orden"] = orden_temporal
 
-        session_context["esperando_confirmacion"] = True
+        session_context.setdefault("flow_state", {})["esperando_confirmacion"] = True
         faltantes = que_falta(orden_temporal, campos_platillos_validos)
         content["tiempos_faltantes"] = faltantes
         content["resumen_completo"] = [
@@ -160,7 +160,7 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
         save_orden_temporal(telefono, orden_temporal)
         session_context["orden"] = orden_temporal
 
-        session_context["esperando_confirmacion"] = True
+        session_context.setdefault("flow_state", {})["esperando_confirmacion"] = True
         faltantes = que_falta(orden_temporal, campos_platillos_validos)
         content["tiempos_faltantes"] = faltantes
         content["resumen_completo"] = [
@@ -217,7 +217,7 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
         }
         if config.get('cobro_desechables'):
             content["aviso_desechables"] = f"Se cobran desechables por ${config.get('precio_desechables', 0)} por comida"
-        session_context["esperando_confirmacion"] = True
+        session_context.setdefault("flow_state", {})["esperando_confirmacion"] = True
         respuesta = llamar_llm(PROMPT_ATTENTION + str(content), messages, data["body"])
         return {"answer": respuesta, "nuevo_estado": "pedido", "session_context": session_context}
     
@@ -384,7 +384,7 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
         session_context["orden"] = orden_temporal
 
         # Preguntar si es todo — incluir resumen completo para que el cliente confirme
-        session_context["esperando_confirmacion"] = True
+        session_context.setdefault("flow_state", {})["esperando_confirmacion"] = True
         faltantes = que_falta(orden_temporal, campos_platillos_validos)
         content["tiempos_faltantes"] = faltantes
         content["resumen_completo"] = [
