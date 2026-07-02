@@ -304,7 +304,15 @@ def persistir_pedido(
         if comanda_id:
             # UPDATE: comanda ya existe en Supabase (viene de rehidratar_orden_desde_supabase)
             ids_platillos = supabase_client.extraer_ids_platillos(todos_platillos, user_id=os.getenv('USER_ID'))
-            nuevos_platillos_ids = [obj.get('id') for obj in ids_platillos]
+            nombre_a_id = {
+                supabase_client.unaccent_simple(obj['platillo'].lower()): obj.get('id')
+                for obj in ids_platillos
+            }
+            nuevos_platillos_ids = [
+                nombre_a_id.get(supabase_client.unaccent_simple(nombre.lower()))
+                for nombre in todos_platillos
+                if nombre_a_id.get(supabase_client.unaccent_simple(nombre.lower()))
+            ]
             resultado = supabase_client.actualizar_platillos_comanda(
                 comanda_id=comanda_id,
                 nuevos_platillos_ids=nuevos_platillos_ids,
@@ -352,12 +360,18 @@ def persistir_pedido(
 
             if todos_platillos:
                 ids_platillos = supabase_client.extraer_ids_platillos(todos_platillos, user_id=os.getenv('USER_ID'))
-                for id_platillo_obj in ids_platillos:
-                    supabase_client.insert_data(
-                        {'comanda_id': comanda_id, 'platillo_id': id_platillo_obj.get('id')},
-                        os.getenv('TLB_DESGLOSE')
-                    )
-                    supabase_client._decrementar_stock(id_platillo_obj.get('id'))
+                nombre_a_id = {
+                    supabase_client.unaccent_simple(obj['platillo'].lower()): obj.get('id')
+                    for obj in ids_platillos
+                }
+                for nombre_platillo in todos_platillos:
+                    platillo_id = nombre_a_id.get(supabase_client.unaccent_simple(nombre_platillo.lower()))
+                    if platillo_id:
+                        supabase_client.insert_data(
+                            {'comanda_id': comanda_id, 'platillo_id': platillo_id},
+                            os.getenv('TLB_DESGLOSE')
+                        )
+                        supabase_client._decrementar_stock(platillo_id)
 
         comandas_ids.append(comanda_id)
 

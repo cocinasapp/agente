@@ -6,6 +6,7 @@ from chat_history import (
     get_estado_entrega,
     save_estado_entrega
 )
+
 from db import DBCA
 from dotenv import load_dotenv
 from logger_utils import write_log
@@ -13,7 +14,8 @@ from states.generic import get_username
 from states.recolectar_info.prompts import (
     PROMPT_EXTRAER_INFO,
     PROMPT_ATTENTION,
-    CAT_INTENCION_INFO
+    CAT_INTENCION_INFO,
+    PROMPT_CONFIRMAR_INFO
 )
 from states.shared_prompts import CONTEXT
 from states.generic import info_esta_completa, que_falta_info
@@ -40,6 +42,15 @@ def handle_recolectar_info(messages, data, telefono, session_context, supabase_c
         write_log(telefono, "flujo_edicion_detectado", f"Flujo de edición detectado para pedido grupo {session_context['pedido_grupo_modificando']}")
         from states.terminar_pedido.handler import handle_terminar_pedido
         return handle_terminar_pedido(messages, data, telefono, session_context)
+    
+    # Si ya tenemos info de entrega completa, mostrarla y pedir confirmación
+    info_actual = session_context.get("info_entrega", {})
+    if info_esta_completa(info_actual):
+        logger.info("Info de entrega ya existe | telefono: %s", telefono)
+        write_log(telefono, "info_ya_existe", "Info de entrega completa ya registrada, solicitando confirmación")
+        context_info = {"info_entrega": info_actual}
+        respuesta = llamar_llm(PROMPT_CONFIRMAR_INFO + str(context_info), messages, data["body"])
+        return {"answer": respuesta, "nuevo_estado": "recolectar_info", "session_context": session_context}
 
     # Clasificar intención
     intencion = llamar_llm(CAT_INTENCION_INFO, messages, data["body"]).strip().lower()
