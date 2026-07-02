@@ -330,7 +330,6 @@ def persistir_pedido(
             _tipo_entrega = 'domicilio' if 'domicilio' in _metodo.lower() else 'local'
             _domicilio = _info.get('domicilio') or ''
             _referencia = _info.get('referencia') or ''
-            _direccion = ', '.join(filter(None, [_domicilio, _referencia]))
             comanda = {
                 'user_id': os.getenv('USER_ID'),
                 'cliente_nombre': nombre_completo,
@@ -342,7 +341,8 @@ def persistir_pedido(
                 'telefono_cliente': telefono,
                 'es_extra': es_extra_comanda,
                 'tipo_entrega': _tipo_entrega,
-                'direccion': _direccion,
+                'direccion': _domicilio,
+                'referencia_1': _referencia,
             }
             comanda_id = supabase_client.insert_data(comanda, os.getenv('TLB_COMANDAS'), return_id=True)
             if not comanda_id:
