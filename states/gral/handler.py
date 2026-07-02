@@ -24,7 +24,8 @@ def handle_gral(messages, data, telefono, session_context, supabase_client=supab
 
     if 'gral' in cat_intention:
         menu_del_dia = supabase_client.consultar_menu_del_dia(user_id=USER_ID)
-        respuesta = llamar_llm(CONTEXT + PROMPT_INFOMENU(menu_del_dia) + f"{session_context.get('nombre_usuario', '')}", messages, data["body"])
+        nombre_ctx = f"El usuario se llama {session_context['nombre_usuario']}." if session_context.get('nombre_usuario') else ""
+        respuesta = llamar_llm(CONTEXT + PROMPT_INFOMENU(menu_del_dia) + nombre_ctx, messages, data["body"])
         nuevo_estado = "gral"
 
     elif 'comensal' in cat_intention:
@@ -32,7 +33,8 @@ def handle_gral(messages, data, telefono, session_context, supabase_client=supab
         return handle_comensal(messages, data, telefono, session_context)
 
     else:
-        respuesta = llamar_llm(CONTEXT + PROMPT_ATTENTION + f"{session_context.get('nombre_usuario', '')}", messages, data["body"])
+        nombre_ctx = f"El usuario se llama {session_context['nombre_usuario']}." if session_context.get('nombre_usuario') else ""
+        respuesta = llamar_llm(CONTEXT + PROMPT_ATTENTION + nombre_ctx, messages, data["body"])
         nuevo_estado = "serv_client"
     
     logger.debug("RESPUESTA ESTADO GRAL: %s", respuesta)

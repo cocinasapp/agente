@@ -19,12 +19,8 @@ def get_username(session_context, telefono, data):
     if not session_context.get("nombre_usuario"):
         write_log(telefono, "USERNAME", "entró al if de username")
         nombre = get_nombre_usuario(data)
-        nombre_usuario = f"El usuario se llama {nombre}." if nombre else ""
         write_log(telefono, "USERNAME", f"NOMBRE Extraído: {nombre}")
-        if nombre:
-            session_context["nombre_usuario"] = nombre_usuario
-        else:
-            session_context["nombre_usuario"] = ""
+        session_context["nombre_usuario"] = nombre if nombre else ""
 
 def construir_orden_temporal(orden_temporal):
     if not orden_temporal:

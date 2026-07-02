@@ -23,14 +23,16 @@ def handle_new(messages, data, telefono, session_context):
     if 'gral' in cat_intention:
         menu_del_dia = DBCA().consultar_menu_del_dia(user_id=os.getenv('USER_ID'))
         write_log(telefono, "menu_del_dia", f"Menu del día: {menu_del_dia}")
-        respuesta = llamar_llm(CONTEXT + PROMPT_INFOMENU(menu_del_dia) + f"{session_context.get('nombre_usuario', '')}", messages, data["body"])
+        nombre_ctx = f"El usuario se llama {session_context['nombre_usuario']}." if session_context.get('nombre_usuario') else ""
+        respuesta = llamar_llm(CONTEXT + PROMPT_INFOMENU(menu_del_dia) + nombre_ctx, messages, data["body"])
         nuevo_estado = "gral"
 
     elif 'comensal' in cat_intention:
         return handle_comensal(messages, data, telefono, session_context)
 
     else:
-        respuesta = llamar_llm(CONTEXT + PROMPT_ATTENTION + f"{session_context.get('nombre_usuario', '')}", messages, data["body"])
+        nombre_ctx = f"El usuario se llama {session_context['nombre_usuario']}." if session_context.get('nombre_usuario') else ""
+        respuesta = llamar_llm(CONTEXT + PROMPT_ATTENTION + nombre_ctx, messages, data["body"])
         nuevo_estado = "serv_client"
 
     logger.debug("RESPUESTA ESTADO NEW: %s", respuesta)
