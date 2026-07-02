@@ -113,11 +113,11 @@ def handle_terminar_pedido(messages, data, telefono, session_context, supabase_c
     # orden_temporal = get_orden_temporal(telefono)
     orden_temporal = session_context.get("orden") or get_orden_temporal(telefono)
     
-    info_entrega = session_context.get("info_entrega", {})
+    info_entrega = session_context.get("entrega", {})
 
     if not orden_temporal or not info_esta_completa(info_entrega):
         logger.error(
-            "terminar_pedido: faltan datos | orden: %s | info_entrega: %s",
+            "terminar_pedido: faltan datos | orden: %s | entrega: %s",
             orden_temporal, info_entrega
         )
         respuesta = llamar_llm(CONTEXT + PROMPT_ATTENTION, messages, data["body"])
@@ -130,7 +130,7 @@ def handle_terminar_pedido(messages, data, telefono, session_context, supabase_c
         respuesta = llamar_llm(CONTEXT + PROMPT_ATTENTION, messages, data["body"])
         return {"answer": respuesta, "nuevo_estado": "terminar_pedido", "session_context": session_context}
 
-    nombre_completo = info_entrega.get("nombre_completo")
+    nombre_completo = info_entrega.get("nombre_para_pedido")
 
     # FINALIZAR
     # Se carga orden temporal a Supabase

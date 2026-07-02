@@ -468,7 +468,7 @@ def que_falta(orden_temporal: dict, campos_platillos_validos: list) -> list[str]
     # return [c for c in campos_platillos_validos if c not in campos_cubiertos]
     return [c for c in campos_platillos_validos if c not in campos_cubiertos and c != 'a_la_carta']
 
-CAMPOS_ENTREGA_REQUERIDOS = ['nombre_completo', 'metodo_de_entrega']
+CAMPOS_ENTREGA_REQUERIDOS = ['nombre_para_pedido', 'metodo_de_entrega']
 
 def info_esta_completa(info_entrega: dict) -> bool:
     """

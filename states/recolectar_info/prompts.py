@@ -26,7 +26,7 @@ Tu ÚNICO objetivo es extraer los datos necesarios para identificar un pedido y
  devolverlos en JSON válido.
 
 Campos que debes extraer:
-- nombre_completo: nombre del cliente con nombre y apellido.
+- nombre_para_pedido: nombre del cliente con nombre y apellido.
 - metodo_de_entrega: Envio a domicilio o pickup (pasar a recoger el pedido).
 - domicilio: Direccion a donde se envia el pedido. unicamente aplica si el usuario
 pidio envio a domicilio. Caso contrario entrega NULL.
@@ -41,8 +41,8 @@ REGLAS ESTRICTAS:
 - El JSON debe ser válido y parseable directamente con json.loads()
 
 EJEMPLO DE RESPUESTA:
-{{"nombre_completo": "Juan Perez", "metodo_de_entrega": "domicilio", "domicilio": "Calle 123 Colonia 456", "referencia": "Puerta negra"}}
-{{"nombre_completo": "Pedro Hernandez", "metodo_de_entrega": "pickup", "domicilio": null, "referencia": null}}
+{{"nombre_para_pedido": "Juan Perez", "metodo_de_entrega": "domicilio", "domicilio": "Calle 123 Colonia 456", "referencia": "Puerta negra"}}
+{{"nombre_para_pedido": "Pedro Hernandez", "metodo_de_entrega": "pickup", "domicilio": null, "referencia": null}}
 """
 
 PROMPT_ATTENTION = f"""

@@ -44,11 +44,11 @@ def handle_recolectar_info(messages, data, telefono, session_context, supabase_c
         return handle_terminar_pedido(messages, data, telefono, session_context)
     
     # Si ya tenemos info de entrega completa, mostrarla y pedir confirmación
-    info_actual = session_context.get("info_entrega", {})
+    info_actual = session_context.get("entrega", {})
     if info_esta_completa(info_actual):
         logger.info("Info de entrega ya existe | telefono: %s", telefono)
         write_log(telefono, "info_ya_existe", "Info de entrega completa ya registrada, solicitando confirmación")
-        context_info = {"info_entrega": info_actual}
+        context_info = {"entrega": info_actual}
         respuesta = llamar_llm(PROMPT_CONFIRMAR_INFO + str(context_info), messages, data["body"])
         return {"answer": respuesta, "nuevo_estado": "recolectar_info", "session_context": session_context}
 
@@ -79,11 +79,11 @@ def handle_recolectar_info(messages, data, telefono, session_context, supabase_c
         return {"answer": respuesta, "nuevo_estado": "recolectar_info", "session_context": session_context}
 
     # Acumular info de entrega en session_context
-    info_actual = session_context.get("info_entrega", {})
+    info_actual = session_context.get("entrega", {})
     for campo, valor in tool_input.items():
         if valor is not None:
             info_actual[campo] = valor
-    session_context["info_entrega"] = info_actual
+    session_context["entrega"] = info_actual
 
     # Validación de completitud
     if info_esta_completa(info_actual):

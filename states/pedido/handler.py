@@ -60,7 +60,7 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
             content = {
                 "status": "orden_confirmada",
                 "tiempos_faltantes": faltantes,
-                "campos_faltantes": ["nombre_completo", "metodo_de_entrega"]
+                "campos_faltantes": ["nombre_para_pedido", "metodo_de_entrega"]
             }
             respuesta = llamar_llm(PROMPT_ATTENTION_INFO + str(content), messages, data["body"])
             write_log(telefono, "respuesta_estado_recolectar_info", f"Respuesta generada en recolectar_info: {respuesta}")
