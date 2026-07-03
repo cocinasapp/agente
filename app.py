@@ -118,6 +118,136 @@ async def webhook(request: Request):
         procesar_mensajes_entrantes(json_data)
         return JSONResponse(content={'status': 'ok-post'}, status_code=200)
 
+# @app.post('/api/v1/notify/status')
+# async def notify_status_change(request: Request):
+#     _sc = supabase_class.supabase
+#     try:
+#         from procesa_mensajes import enviar_mensaje
+
+#         payload = await request.json()
+#         write_log("system", "info_webhook_received", f"Webhook recibido: {payload}", nivel="info")
+
+#         record = payload.get('record', {})
+#         status = record.get('status')
+#         cliente_nombre = record.get('cliente_nombre')
+#         telefono_cliente = record.get('telefono_cliente')
+#         pedido_grupo = record.get('pedido_grupo')
+#         user_id = record.get('user_id')
+
+#         if status not in ['EN_PROCESO', 'ENVIADO']:
+#             write_log("system", "info_webhook_ignored", f"Status '{status}' ignorado en payload: {payload}", nivel="info")
+#             return JSONResponse(content={"status": "ignored"}, status_code=200)
+
+#         if not telefono_cliente:
+#             write_log("system", "info_webhook_no_phone", f"No hay teléfono en la comanda: {record.get('id')}", nivel="warning")
+#             return JSONResponse(content={"status": "no_phone"}, status_code=200)
+
+#         # NUEVO: lookup de credenciales por user_id
+#         if not user_id:
+#             print(f"⚠️ No hay user_id en la comanda: {record.get('id')}")
+#             return JSONResponse(content={"status": "no_user_id"}, status_code=200)
+
+#         config_result = _sc.table('tbl_cocina_config')\
+#             .select('wasender_api_key, wasender_token')\
+#             .eq('user_id', user_id)\
+#             .single()\
+#             .execute()
+
+#         if not config_result.data:
+#             print(f"❌ No se encontró config para user_id: {user_id}")
+#             write_log("system", "error_no_config", f"No se encontró configuración de Wasender para user_id: {user_id}", nivel="error")
+#             return JSONResponse(content={"status": "no_config"}, status_code=200)
+
+#         wasender_api_key = config_result.data['wasender_api_key']
+#         # wasender_token disponible si lo necesitas: config_result.data['wasender_token']
+        
+#         # NUEVO: verificar que TODAS las comandas no-extra del grupo
+#         # estén en el mismo status antes de notificar
+#         if pedido_grupo:
+#             grupo_result = _sc.table(os.getenv('TLB_COMANDAS'))\
+#                 .select('id, status')\
+#                 .eq('pedido_grupo', pedido_grupo)\
+#                 .eq('es_extra', False)\
+#                 .execute()
+
+#             comandas_principales = grupo_result.data or []
+#             todas_en_status = all(
+#                 c['status'] == status for c in comandas_principales
+#             )
+
+#             if not todas_en_status:
+#                 print(f"⏳ Grupo {pedido_grupo[:8]}... aún no está completo en {status}, esperando")
+#                 return JSONResponse(content={"status": "waiting_group"}, status_code=200)
+
+#         if status == 'EN_PROCESO':
+#             mensaje = f"¡Hola {cliente_nombre}! Tu pedido ya está siendo preparado. 🍳"
+#         elif status == 'ENVIADO':
+#             mensaje = f"¡Hola {cliente_nombre}! Tu pedido ya va en camino. 🛵"
+
+#         telefono_formateado = f"52{telefono_cliente}@s.whatsapp.net"
+#         print(f"📞 Teléfono formateado: {telefono_formateado}")
+#         write_log("system", "info_sending_message", f"Intentando enviar mensaje: {mensaje} a {telefono_formateado} con status {status}", nivel="info")
+
+#         telefono_limpio = telefono_cliente.strip().replace(" ", "").replace("-", "").replace("+", "")
+#         if telefono_limpio.startswith("521"):
+#             numero_base = telefono_limpio[3:]
+#         elif telefono_limpio.startswith("52"):
+#             numero_base = telefono_limpio[2:]
+#         else:
+#             numero_base = telefono_limpio
+
+#         # Buscar JID exacto en conversations
+#         whatsapp_jid = None
+#         conv = _sc.table('conversations')\
+#             .select('whatsapp_jid')\
+#             .eq('phone_number', telefono_cliente)\
+#             .eq('user_id', user_id)\
+#             .not_.is_('whatsapp_jid', 'null')\
+#             .limit(1)\
+#             .execute()
+
+#         if conv.data:
+#             whatsapp_jid = conv.data[0].get('whatsapp_jid')
+
+#         if whatsapp_jid:
+#             print(f"✅ JID encontrado: {whatsapp_jid}")
+#             resultado = enviar_mensaje(whatsapp_jid, mensaje, api_key=wasender_api_key)
+#             if resultado.get('success'):
+#                 return JSONResponse(content={"status": "ok"}, status_code=200)
+#             else:
+#                 print(f"❌ Error enviando con JID: {resultado}")
+#                 return JSONResponse(content={"status": "error"}, status_code=500)
+#         else:
+#             print(f"⚠️ Sin JID guardado, intentando con prefijos 52/521")
+#             telefono_limpio = telefono_cliente.strip().replace(" ", "").replace("-", "").replace("+", "")
+#             if telefono_limpio.startswith("521"):
+#                 numero_base = telefono_limpio[3:]
+#             elif telefono_limpio.startswith("52"):
+#                 numero_base = telefono_limpio[2:]
+#             else:
+#                 numero_base = telefono_limpio
+
+#             enviado = False
+#             for prefijo in ["521", "52"]:
+#                 telefono_formateado = f"{prefijo}{numero_base}@s.whatsapp.net"
+#                 resultado = enviar_mensaje(telefono_formateado, mensaje, api_key=wasender_api_key)
+#                 if resultado.get("success"):
+#                     print(f"✅ Enviado con prefijo {prefijo}")
+#                     enviado = True
+#                     break
+#                 print(f"⚠️ Falló con prefijo {prefijo}: {resultado}")
+
+#             if enviado:
+#                 return JSONResponse(content={"status": "ok"}, status_code=200)
+#             else:
+#                 print(f"❌ No se pudo enviar con ningún prefijo")
+#                 return JSONResponse(content={"status": "error"}, status_code=500)
+
+#     except Exception as e:
+#         print(f"❌ Error en notify_status_change: {e}")
+#         return JSONResponse(content={"status": "error", "detail": str(e)}, status_code=500)
+
+
 @app.post('/api/v1/notify/status')
 async def notify_status_change(request: Request):
     _sc = supabase_class.supabase
@@ -160,7 +290,7 @@ async def notify_status_change(request: Request):
 
         wasender_api_key = config_result.data['wasender_api_key']
         # wasender_token disponible si lo necesitas: config_result.data['wasender_token']
-        
+
         # NUEVO: verificar que TODAS las comandas no-extra del grupo
         # estén en el mismo status antes de notificar
         if pedido_grupo:
@@ -178,6 +308,20 @@ async def notify_status_change(request: Request):
             if not todas_en_status:
                 print(f"⏳ Grupo {pedido_grupo[:8]}... aún no está completo en {status}, esperando")
                 return JSONResponse(content={"status": "waiting_group"}, status_code=200)
+
+            # NUEVO: lock atómico para evitar mensajes duplicados cuando
+            # varias comandas del mismo grupo llegan al status casi al mismo tiempo
+            columna_flag = 'notificado_en_proceso' if status == 'EN_PROCESO' else 'notificado_enviado'
+
+            lock_result = _sc.table(os.getenv('TLB_COMANDAS'))\
+                .update({columna_flag: True})\
+                .eq('pedido_grupo', pedido_grupo)\
+                .eq(columna_flag, False)\
+                .execute()
+
+            if not lock_result.data:
+                print(f"⏳ Notificación de {status} ya enviada para grupo {pedido_grupo[:8]}...")
+                return JSONResponse(content={"status": "already_notified"}, status_code=200)
 
         if status == 'EN_PROCESO':
             mensaje = f"¡Hola {cliente_nombre}! Tu pedido ya está siendo preparado. 🍳"
@@ -246,6 +390,7 @@ async def notify_status_change(request: Request):
     except Exception as e:
         print(f"❌ Error en notify_status_change: {e}")
         return JSONResponse(content={"status": "error", "detail": str(e)}, status_code=500)
+
 
 @app.post('/api/v1/ordenes/manual')
 async def crear_orden_manual_endpoint(request: Request):

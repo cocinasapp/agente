@@ -171,8 +171,11 @@ def dispatch(messages, data, telefono):
 
     # guardar_mensaje(telefono, "user", data["body"], estado_actual)
     # guardar_mensaje(telefono, "assistant", resultado["answer"], nuevo_estado)
-    guardar_mensaje(telefono, "user", data["body"], estado_actual, whatsapp_jid=data["from"])
-    guardar_mensaje(telefono, "assistant", resultado["answer"], nuevo_estado, whatsapp_jid=data["from"])
+    # guardar_mensaje(telefono, "user", data["body"], estado_actual, whatsapp_jid=data["from"])
+    # guardar_mensaje(telefono, "assistant", resultado["answer"], nuevo_estado, whatsapp_jid=data["from"])
+
+    guardar_mensaje(telefono, "user", data["body"], estado_actual, whatsapp_jid=data["from"], telefono_real=data.get("telefono_real"))
+    guardar_mensaje(telefono, "assistant", resultado["answer"], nuevo_estado, whatsapp_jid=data["from"], telefono_real=data.get("telefono_real"))
 
     return resultado
 
