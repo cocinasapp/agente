@@ -157,6 +157,7 @@ def handle_terminar_pedido(messages, data, telefono, session_context, supabase_c
     content["domicilio"] = info_entrega.get("domicilio")
     content["referencia"] = info_entrega.get("referencia")
 
+    breakpoint()
     save_estado_entrega(telefono, estado_entrega)
     delete_orden_temporal(telefono)
 

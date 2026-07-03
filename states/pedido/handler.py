@@ -351,16 +351,18 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
                                         break
             
             # Si ya existe una orden rehidratada en Redis (viene de handler_terminar_pedido),
-            # preservar pedido_grupo y comanda_ids; vaciar ordenes para acumular desde cero.
+            # preservar pedido_grupo y comanda_id único; vaciar ordenes para acumular desde cero.
             if orden_redis and any(o.get("comanda_id") for o in orden_redis.get("ordenes", [])):
+                comanda_id_original = next(
+                    (o.get("comanda_id") for o in orden_redis["ordenes"] if o.get("comanda_id")),
+                    None
+                )
                 orden_temporal = {
                     "pedido_grupo": orden_redis["pedido_grupo"],
                     "ordenes": [],
                     "total_ordenes": 0,
                     "monto_total_general": 0,
-                    "_comanda_ids_originales": [
-                        o.get("comanda_id") for o in orden_redis["ordenes"]
-                    ]
+                    "_comanda_id_original": comanda_id_original
                 }
             else:
                 orden_temporal = construir_orden_temporal(None)
