@@ -19,10 +19,12 @@ def handle_new(messages, data, telefono, session_context):
     cat_intention = llamar_llm(CAT_INTENTION, messages, data["body"]).lower()
     logger.debug("CAT INTENTION NEW: %s", cat_intention)
     write_log(telefono, "cat_intention", f"Categoría de intención detectada en new: {cat_intention}")
+    print(f"CAT INTENTION NEW: {cat_intention}")
 
     if 'gral' in cat_intention:
         menu_del_dia = DBCA().consultar_menu_del_dia(user_id=os.getenv('USER_ID'))
         write_log(telefono, "menu_del_dia", f"Menu del día: {menu_del_dia}")
+        print(f"Menu del día en new CAT gral: {menu_del_dia}")
         nombre_ctx = f"El usuario se llama {session_context['nombre_usuario']}." if session_context.get('nombre_usuario') else ""
         respuesta = llamar_llm(CONTEXT + PROMPT_INFOMENU(menu_del_dia) + nombre_ctx, messages, data["body"])
         nuevo_estado = "gral"
