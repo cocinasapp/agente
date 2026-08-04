@@ -251,6 +251,7 @@ def agregar_extra_a_orden(orden_temporal, tool_input, config, supabase_client, c
 
     return orden_temporal, content
 
+# con una pequeña modificacion 
 def persistir_pedido(
         orden_temporal,
         nombre_completo,
@@ -327,47 +328,111 @@ def persistir_pedido(
             filters={'id': comanda_id}
         )
     else:
-        # INSERT: comanda nueva — una sola para todo el grupo
+        # INSERT: una comanda por cada orden (comida) del grupo
         _info = info_entrega or {}
         _metodo = _info.get('metodo_de_entrega') or 'local'
         _tipo_entrega = 'domicilio' if 'domicilio' in _metodo.lower() else 'local'
         _domicilio = _info.get('domicilio') or ''
         _referencia = _info.get('referencia') or ''
-        comanda = {
-            'user_id':          os.getenv('USER_ID'),
-            'cliente_nombre':   nombre_completo,
-            'pedido_grupo':     pedido_grupo,
-            'monto_estandar':   monto_estandar,
-            'monto_extras':     monto_extras,
-            'monto_desechables': monto_desech,
-            'monto_total':      monto_total,
-            'telefono_cliente': telefono,
-            'es_extra':         es_extra_grupo,
-            'tipo_entrega':     _tipo_entrega,
-            'direccion':        _domicilio,
-            'referencia_1':     _referencia,
-        }
-        comanda_id = supabase_client.insert_data(comanda, os.getenv('TLB_COMANDAS'), return_id=True)
-        if not comanda_id:
-            logger.error(
-                "persistir_pedido: fallo al insertar comanda | telefono: %s | comanda: %s",
-                telefono, comanda
+
+        comanda_id = None  # último comanda_id insertado, se usa abajo en estado_entrega/content
+
+        for orden in orden_temporal["ordenes"]:
+            platillos_orden = []
+            for platillos_tiempo in orden['platillos'].values():
+                if platillos_tiempo and platillos_tiempo not in ['', '<UNKNOWN>']:
+                    if isinstance(platillos_tiempo, list):
+                        platillos_orden.extend(platillos_tiempo)
+                    else:
+                        platillos_orden.append(platillos_tiempo)
+
+            costos_orden = orden.get('costos', {})
+            es_extra_orden = orden.get('es_extra', False) or not any(
+                campo in orden['platillos'] and orden['platillos'][campo]
+                for campo in campos_menu_keys
             )
 
-        if todos_platillos and comanda_id:
-            ids_platillos = supabase_client.extraer_ids_platillos(todos_platillos, user_id=os.getenv('USER_ID'))
-            nombre_a_id = {
-                supabase_client.unaccent_simple(obj['platillo'].lower()): obj.get('id')
-                for obj in ids_platillos
+            comanda = {
+                'user_id':          os.getenv('USER_ID'),
+                'cliente_nombre':   nombre_completo,
+                'pedido_grupo':     pedido_grupo,
+                'monto_estandar':   costos_orden.get('monto_estandar', 0),
+                'monto_extras':     costos_orden.get('monto_extras', 0),
+                'monto_desechables': costos_orden.get('monto_desechables', 0),
+                'monto_total':      costos_orden.get('monto_total', 0),
+                'telefono_cliente': telefono,
+                'es_extra':         es_extra_orden,
+                'tipo_entrega':     _tipo_entrega,
+                'direccion':        _domicilio,
+                'referencia_1':     _referencia,
             }
-            for nombre_platillo in todos_platillos:
-                platillo_id = nombre_a_id.get(supabase_client.unaccent_simple(nombre_platillo.lower()))
-                if platillo_id:
-                    supabase_client.insert_data(
-                        {'comanda_id': comanda_id, 'platillo_id': platillo_id},
-                        os.getenv('TLB_DESGLOSE')
-                    )
-                    supabase_client._decrementar_stock(platillo_id)
+            comanda_id_orden = supabase_client.insert_data(comanda, os.getenv('TLB_COMANDAS'), return_id=True)
+            if not comanda_id_orden:
+                logger.error(
+                    "persistir_pedido: fallo al insertar comanda | telefono: %s | orden_numero: %s | comanda: %s",
+                    telefono, orden.get('orden_numero'), comanda
+                )
+                continue
+
+            comanda_id = comanda_id_orden  # se conserva el último para content/estado_entrega
+
+            if platillos_orden:
+                ids_platillos = supabase_client.extraer_ids_platillos(platillos_orden, user_id=os.getenv('USER_ID'))
+                nombre_a_id = {
+                    supabase_client.unaccent_simple(obj['platillo'].lower()): obj.get('id')
+                    for obj in ids_platillos
+                }
+                for nombre_platillo in platillos_orden:
+                    platillo_id = nombre_a_id.get(supabase_client.unaccent_simple(nombre_platillo.lower()))
+                    if platillo_id:
+                        supabase_client.insert_data(
+                            {'comanda_id': comanda_id_orden, 'platillo_id': platillo_id},
+                            os.getenv('TLB_DESGLOSE')
+                        )
+                        supabase_client._decrementar_stock(platillo_id)
+    # ELSE ORIGINAL SIN LAS CONDICIONES NUEVAS INTEGRADAS
+    # else:
+    #     # INSERT: comanda nueva — una sola para todo el grupo
+    #     _info = info_entrega or {}
+    #     _metodo = _info.get('metodo_de_entrega') or 'local'
+    #     _tipo_entrega = 'domicilio' if 'domicilio' in _metodo.lower() else 'local'
+    #     _domicilio = _info.get('domicilio') or ''
+    #     _referencia = _info.get('referencia') or ''
+    #     comanda = {
+    #         'user_id':          os.getenv('USER_ID'),
+    #         'cliente_nombre':   nombre_completo,
+    #         'pedido_grupo':     pedido_grupo,
+    #         'monto_estandar':   monto_estandar,
+    #         'monto_extras':     monto_extras,
+    #         'monto_desechables': monto_desech,
+    #         'monto_total':      monto_total,
+    #         'telefono_cliente': telefono,
+    #         'es_extra':         es_extra_grupo,
+    #         'tipo_entrega':     _tipo_entrega,
+    #         'direccion':        _domicilio,
+    #         'referencia_1':     _referencia,
+    #     }
+    #     comanda_id = supabase_client.insert_data(comanda, os.getenv('TLB_COMANDAS'), return_id=True)
+    #     if not comanda_id:
+    #         logger.error(
+    #             "persistir_pedido: fallo al insertar comanda | telefono: %s | comanda: %s",
+    #             telefono, comanda
+    #         )
+
+    #     if todos_platillos and comanda_id:
+    #         ids_platillos = supabase_client.extraer_ids_platillos(todos_platillos, user_id=os.getenv('USER_ID'))
+    #         nombre_a_id = {
+    #             supabase_client.unaccent_simple(obj['platillo'].lower()): obj.get('id')
+    #             for obj in ids_platillos
+    #         }
+    #         for nombre_platillo in todos_platillos:
+    #             platillo_id = nombre_a_id.get(supabase_client.unaccent_simple(nombre_platillo.lower()))
+    #             if platillo_id:
+    #                 supabase_client.insert_data(
+    #                     {'comanda_id': comanda_id, 'platillo_id': platillo_id},
+    #                     os.getenv('TLB_DESGLOSE')
+    #                 )
+    #                 supabase_client._decrementar_stock(platillo_id)
 
     estado_entrega = {
         "comanda_id":    comanda_id,
@@ -493,10 +558,11 @@ def que_falta_info(info_entrega: dict) -> list[str]:
 
     return faltantes
 
-def tiene_contenido_0(ti, campos_platillos_validos):
-    tiene_platillos = any(str(ti.get(c, '')).strip() not in empty_placeholders for c in campos_platillos_validos)
-    tiene_extras = any(ti.get(k) not in empty_placeholders for k in ['extra_1', 'extra_2', 'extra_3', 'a_la_carta'])
-    return tiene_platillos or tiene_extras
+# def tiene_contenido_0(ti, campos_platillos_validos):
+#     tiene_platillos = any(str(ti.get(c, '')).strip() not in empty_placeholders for c in campos_platillos_validos)
+#     tiene_extras = any(ti.get(k) not in empty_placeholders for k in ['extra_1', 'extra_2', 'extra_3', 'a_la_carta'])
+#     return tiene_platillos or tiene_extras
+
 
 def tiene_contenido(ti, campos_platillos_validos):
     tiene_platillos = any(
@@ -813,14 +879,109 @@ def reemplazar_platillos_en_orden(orden_temporal, cambios, campos_platillos_vali
     }
     return orden_temporal, content
 
+# FUNCION ORIGINAL DE REHIDRATAR LA ORDEN DESDE SUPABASE ANTES DE LA ADAPTACION DE DEJARLO EN GRUPOS
+# def rehidratar_orden_desde_supabase_orig(pedido_data, config, supabase_client, campos_platillos_validos):
+#     """
+#     Convierte la comanda única de Supabase al formato de orden_temporal
+#     que espera handle_pedido.
+
+#     Nuevo paradigma: 1 comanda por pedido_grupo en Supabase.
+#     Se reconstruye una sola orden sintética con todos los platillos del grupo.
+#     La trazabilidad por persona no se recupera desde Supabase — vive solo en sesión.
+
+#     Args:
+#         pedido_data: dict retornado por obtener_pedido_reciente_usuario()
+#                      {'pedido_grupo': str, 'comandas': [...], 'cliente_nombre': str}
+#         config: dict de configuración de cocina
+#         supabase_client: instancia de DBCA
+#         campos_platillos_validos: list de tiempos del menú del día
+
+#     Returns:
+#         orden_temporal: dict con la estructura estándar (una sola orden sintética)
+#     """
+#     campos_menu_actuales = [c for c in campos_platillos_validos if c != 'a_la_carta']
+#     extras_keys = ['extra_1', 'extra_2', 'extra_3', 'a_la_carta']
+
+#     pedido_grupo = pedido_data['pedido_grupo']
+
+#     comandas_con_platillos = supabase_client.obtener_comandas_con_platillos(pedido_grupo)
+
+#     if not comandas_con_platillos:
+#         return {
+#             'pedido_grupo': pedido_grupo,
+#             'ordenes': [],
+#             'total_ordenes': 0,
+#             'monto_total_general': 0.0
+#         }
+
+#     # Nuevo paradigma: primera (y única) comanda del grupo
+#     comanda = comandas_con_platillos[0]
+#     comanda_id = comanda['comanda_id']
+#     monto_total_general = float(comanda['monto_total'] or 0.0)
+
+#     # Reconstruir platillos_dict desde el desglose plano
+#     platillos_dict = {}
+#     extras_usados = []
+
+#     for platillo in comanda['platillos']:
+#         campo = platillo.get('campo', '')
+#         nombre = platillo.get('platillo', '')
+
+#         tiempo_match = next(
+#             (c for c in campos_menu_actuales
+#              if supabase_client.unaccent_simple(c.lower().replace(' ', '_')) ==
+#                 supabase_client.unaccent_simple(campo.lower())),
+#             None
+#         )
+
+#         if tiempo_match:
+#             if tiempo_match not in platillos_dict:
+#                 platillos_dict[tiempo_match] = []
+#             platillos_dict[tiempo_match].append(nombre)
+#         else:
+#             extras_usados.append(nombre)
+
+#     for i, extra_nombre in enumerate(extras_usados):
+#         if i < len(extras_keys):
+#             platillos_dict[extras_keys[i]] = extra_nombre
+
+#     # Costo: tomado directamente de Supabase, no recalculado
+#     # (evita inconsistencias con múltiples platillos por tiempo de grupo)
+#     costos = {
+#         'monto_estandar':    monto_total_general,
+#         'monto_extras':      0,
+#         'monto_desechables': 0,
+#         'monto_total':       monto_total_general
+#     }
+
+#     ordenes = [{
+#         'orden_numero': 1,
+#         'comanda_id':   comanda_id,   # preservar para UPDATE en Supabase
+#         'platillos':    platillos_dict,
+#         'desechables':  False,
+#         'costos':       costos
+#     }]
+
+#     orden_temporal = {
+#         'pedido_grupo':       pedido_grupo,
+#         'ordenes':            ordenes,
+#         'total_ordenes':      1,
+#         'monto_total_general': monto_total_general
+#     }
+
+#     return orden_temporal
+
+
+# NUEVA FUNCION PROPUESTA PARA QUE SE PUEDA MANTENER EL ORDEN DE PEDIDOS POR CADA COMIDA, PORQUE SUELTO NO SE VE BIEN EN LA EXPERIENCIA DE USUARIO
 def rehidratar_orden_desde_supabase(pedido_data, config, supabase_client, campos_platillos_validos):
     """
-    Convierte la comanda única de Supabase al formato de orden_temporal
+    Convierte las comandas de Supabase al formato de orden_temporal
     que espera handle_pedido.
 
-    Nuevo paradigma: 1 comanda por pedido_grupo en Supabase.
-    Se reconstruye una sola orden sintética con todos los platillos del grupo.
-    La trazabilidad por persona no se recupera desde Supabase — vive solo en sesión.
+    Una orden por cada comanda real del grupo — preserva la separación
+    por comida (1 comanda = 1 comida), y cada orden conserva su propio
+    comanda_id para poder actualizar/eliminar esa comida específica
+    durante una modificación.
 
     Args:
         pedido_data: dict retornado por obtener_pedido_reciente_usuario()
@@ -830,7 +991,7 @@ def rehidratar_orden_desde_supabase(pedido_data, config, supabase_client, campos
         campos_platillos_validos: list de tiempos del menú del día
 
     Returns:
-        orden_temporal: dict con la estructura estándar (una sola orden sintética)
+        orden_temporal: dict con la estructura estándar (una orden por comanda)
     """
     campos_menu_actuales = [c for c in campos_platillos_validos if c != 'a_la_carta']
     extras_keys = ['extra_1', 'extra_2', 'extra_3', 'a_la_carta']
@@ -847,59 +1008,153 @@ def rehidratar_orden_desde_supabase(pedido_data, config, supabase_client, campos
             'monto_total_general': 0.0
         }
 
-    # Nuevo paradigma: primera (y única) comanda del grupo
-    comanda = comandas_con_platillos[0]
-    comanda_id = comanda['comanda_id']
-    monto_total_general = float(comanda['monto_total'] or 0.0)
+    # Una orden por cada comanda real del grupo
+    ordenes = []
+    monto_total_general = 0.0
 
-    # Reconstruir platillos_dict desde el desglose plano
-    platillos_dict = {}
-    extras_usados = []
+    for comanda in comandas_con_platillos:
+        comanda_id = comanda['comanda_id']
+        monto_comanda = float(comanda['monto_total'] or 0.0)
+        monto_total_general += monto_comanda
 
-    for platillo in comanda['platillos']:
-        campo = platillo.get('campo', '')
-        nombre = platillo.get('platillo', '')
+        platillos_dict = {}
+        extras_usados = []
 
-        tiempo_match = next(
-            (c for c in campos_menu_actuales
-             if supabase_client.unaccent_simple(c.lower().replace(' ', '_')) ==
-                supabase_client.unaccent_simple(campo.lower())),
-            None
-        )
+        for platillo in comanda['platillos']:
+            campo = platillo.get('campo', '')
+            nombre = platillo.get('platillo', '')
 
-        if tiempo_match:
-            if tiempo_match not in platillos_dict:
-                platillos_dict[tiempo_match] = []
-            platillos_dict[tiempo_match].append(nombre)
-        else:
-            extras_usados.append(nombre)
+            tiempo_match = next(
+                (c for c in campos_menu_actuales
+                 if supabase_client.unaccent_simple(c.lower().replace(' ', '_')) ==
+                    supabase_client.unaccent_simple(campo.lower())),
+                None
+            )
 
-    for i, extra_nombre in enumerate(extras_usados):
-        if i < len(extras_keys):
-            platillos_dict[extras_keys[i]] = extra_nombre
+            if tiempo_match:
+                if tiempo_match not in platillos_dict:
+                    platillos_dict[tiempo_match] = []
+                platillos_dict[tiempo_match].append(nombre)
+            else:
+                extras_usados.append(nombre)
 
-    # Costo: tomado directamente de Supabase, no recalculado
-    # (evita inconsistencias con múltiples platillos por tiempo de grupo)
-    costos = {
-        'monto_estandar':    monto_total_general,
-        'monto_extras':      0,
-        'monto_desechables': 0,
-        'monto_total':       monto_total_general
-    }
+        for i, extra_nombre in enumerate(extras_usados):
+            if i < len(extras_keys):
+                platillos_dict[extras_keys[i]] = extra_nombre
 
-    ordenes = [{
-        'orden_numero': 1,
-        'comanda_id':   comanda_id,   # preservar para UPDATE en Supabase
-        'platillos':    platillos_dict,
-        'desechables':  False,
-        'costos':       costos
-    }]
+        # Costo: tomado directamente de Supabase, no recalculado
+        costos = {
+            'monto_estandar':    monto_comanda,
+            'monto_extras':      0,
+            'monto_desechables': 0,
+            'monto_total':       monto_comanda
+        }
+
+        ordenes.append({
+            'orden_numero': comanda['numero'],
+            'comanda_id':   comanda_id,   # preservar para UPDATE/eliminación en Supabase
+            'platillos':    platillos_dict,
+            'desechables':  False,
+            'costos':       costos
+        })
 
     orden_temporal = {
         'pedido_grupo':       pedido_grupo,
         'ordenes':            ordenes,
-        'total_ordenes':      1,
+        'total_ordenes':      len(ordenes),
         'monto_total_general': monto_total_general
     }
 
     return orden_temporal
+
+# FUNCIONES NUEVAS PARA ARREGLAR EL TEMA DE QUE SI QUEDA UN TIEMPO VACIO LO META COMO EXTRA SIN ROMPER LA LOGICA EXISTENTE 
+def detectar_extra_que_es_platillo_faltante(tool_input, orden_redis, menu_data, campos_menu_actuales, supabase_client):
+    """
+    Revisa extra_1/2/3 del tool_input recién extraído. Si algún valor coincide
+    con el nombre de un platillo real del menú Y existe una orden que tiene ese
+    tiempo vacío, lo separa del tool_input y lo regresa como asignación directa
+    (orden_numero, tiempo, platillo) en vez de dejarlo como extra genuino.
+    """
+    if not orden_redis or not orden_redis.get("ordenes"):
+        return tool_input, []
+
+    platillo_a_tiempo = {}
+    for tiempo, platillos in menu_data.get('menu', {}).items():
+        if tiempo in campos_menu_actuales:
+            for p in platillos:
+                platillo_a_tiempo[supabase_client.unaccent_simple(p['platillo'].lower())] = tiempo
+
+    asignaciones = []
+    extras_keys = ['extra_1', 'extra_2', 'extra_3']
+
+    for key in extras_keys:
+        val = tool_input.get(key)
+        if val in empty_placeholders:
+            continue
+        valores = val if isinstance(val, list) else [val]
+        valores_restantes = []
+
+        for v in valores:
+            if not v or v in empty_placeholders:
+                valores_restantes.append(v)
+                continue
+            tiempo_match = platillo_a_tiempo.get(supabase_client.unaccent_simple(v.lower()))
+            if not tiempo_match:
+                valores_restantes.append(v)
+                continue
+
+            orden_destino = next(
+                (o for o in sorted(orden_redis["ordenes"], key=lambda o: o.get("orden_numero", 0))
+                 if o["platillos"].get(tiempo_match) in empty_placeholders
+                 or o["platillos"].get(tiempo_match) in [[], ['']]),
+                None
+            )
+
+            if orden_destino:
+                asignaciones.append((orden_destino["orden_numero"], tiempo_match, v))
+            else:
+                valores_restantes.append(v)
+
+        valores_restantes = [v for v in valores_restantes if v]
+        if valores_restantes:
+            tool_input[key] = valores_restantes if isinstance(val, list) else valores_restantes[0]
+        else:
+            tool_input[key] = None
+
+    return tool_input, asignaciones
+
+def agregar_platillo_a_orden_existente(orden_temporal, orden_numero, campo_tiempo, platillo, config, supabase_client, campos_platillos_validos):
+    orden = next((o for o in orden_temporal["ordenes"] if o.get("orden_numero") == orden_numero), None)
+    if not orden:
+        return orden_temporal, None
+
+    valor_actual = orden["platillos"].get(campo_tiempo)
+    if isinstance(valor_actual, list):
+        nuevos_valores = valor_actual + [platillo]
+    elif valor_actual and valor_actual not in empty_placeholders:
+        nuevos_valores = [valor_actual, platillo]
+    else:
+        nuevos_valores = [platillo]
+    orden["platillos"][campo_tiempo] = nuevos_valores
+
+    tool_input_recalculo = {}
+    for campo, vals in orden["platillos"].items():
+        if isinstance(vals, list) and vals:
+            tool_input_recalculo[campo] = vals if len(vals) > 1 else vals[0]
+        elif vals and vals not in empty_placeholders:
+            tool_input_recalculo[campo] = vals
+
+    costo_nuevo = supabase_client.determinar_costo_comanda(tool_input_recalculo, config=config, campos_platillos=campos_platillos_validos)
+    monto_anterior = orden.get("costos", {}).get("monto_total", 0)
+    orden["costos"] = costo_nuevo
+    orden_temporal["monto_total_general"] = orden_temporal["monto_total_general"] - monto_anterior + costo_nuevo.get("monto_total", 0)
+
+    content = {
+        "status": "platillo_agregado_a_comida_existente",
+        "orden_numero": orden_numero,
+        "tiempo": campo_tiempo,
+        "platillo": platillo,
+        "costo_orden_actualizado": costo_nuevo.get("monto_total", 0),
+        "monto_total_acumulado": orden_temporal["monto_total_general"],
+    }
+    return orden_temporal, content

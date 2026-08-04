@@ -589,6 +589,7 @@ class DBCA:
 
         pedido_grupo = str(uuid.uuid4())
         comandas_ids = []
+        comanda_montos = {}
 
         try:
             # Obtener todos los platillos activos para calcular descuentos
@@ -630,6 +631,7 @@ class DBCA:
                     return {"ok": False, "error": f"Error insertando comida {i + 1}"}
 
                 comandas_ids.append(comanda_id)
+                comanda_montos[comanda_id] = monto
 
                 for platillo in platillos_comida:
                     self.insert_data(
@@ -644,12 +646,54 @@ class DBCA:
                 print(f"✅ Comida {i + 1} creada: {comanda_id} | ${monto} | {len(platillos_comida)} platillos")
                 write_log(uid or "system", "comida_creada_manual", f"Comida {i + 1} creada manualmente para {cliente_nombre} con comanda_id: {comanda_id} y monto: ${monto}.", nivel="info")
 
+            # FUNCIÓN ORIGINAL , UTILIZADA ANTERIORMENTE EN LOS EXTRAS ANTES DE LA VERSION 2.0
             # ── Extras ────────────────────────────────────────────────────
-            for extra in extras:
-                platillo_id = str(extra.get("platillo_id", "")).strip('"')
-                precio_extra = float(extra.get("precio", 0.0))
-                nombre_extra = extra.get("platillo_nombre", "")
+            # for extra in extras:
+            #     platillo_id = str(extra.get("platillo_id", "")).strip('"')
+            #     precio_extra = float(extra.get("precio", 0.0))
+            #     nombre_extra = extra.get("platillo_nombre", "")
 
+            #     comanda_extra = {
+            #         "user_id": uid,
+            #         "cliente_nombre": cliente_nombre.strip(),
+            #         "pedido_grupo": pedido_grupo,
+            #         "telefono_cliente": "mostrador",
+            #         "tipo_entrega": tipo_entrega or "local",
+            #         "direccion": direccion.strip() if direccion else "",
+            #         "monto_estandar": 0,
+            #         "monto_extras": precio_extra,
+            #         "monto_desechables": 0,
+            #         "monto_total": precio_extra,
+            #         "status": "PENDIENTE",
+            #         "created_at": datetime.now(timezone.utc).isoformat(),
+            #         "es_extra": True
+            #     }
+
+            #     comanda_id = self.insert_data(comanda_extra, self.table_comandas, return_id=True)
+
+            #     if not comanda_id:
+            #         return {"ok": False, "error": f"Error insertando extra: {nombre_extra}"}
+
+            #     comandas_ids.append(comanda_id)
+
+            #     self.insert_data(
+            #         {"comanda_id": comanda_id, "platillo_id": platillo_id},
+            #         self.table_desglose
+            #     )
+            #     self._decrementar_stock(platillo_id)
+
+            #     print(f"✅ Extra creado: {comanda_id} | {nombre_extra} | ${precio_extra}")
+
+            # print(f"📦 Orden manual completa | grupo: {pedido_grupo} | {len(comandas_ids)} comandas")
+            # write_log(uid or "system", "orden_manual_creada", f"Orden manual creada para {cliente_nombre} con pedido_grupo: {pedido_grupo} y {len(comandas_ids)} comandas.", nivel="info")
+
+            # ── Extras ────────────────────────────────────────────────────
+            # Se suman a la comanda de la primera comida, igual que el bot de WhatsApp.
+            # Si la orden es SOLO extras (sin comidas), se agrupan en una sola comanda.
+            comanda_id_extras = comandas_ids[0] if comidas and comandas_ids else None
+
+            if extras and not comanda_id_extras:
+                monto_extras_total = sum(float(e.get("precio", 0.0)) for e in extras)
                 comanda_extra = {
                     "user_id": uid,
                     "cliente_nombre": cliente_nombre.strip(),
@@ -658,32 +702,47 @@ class DBCA:
                     "tipo_entrega": tipo_entrega or "local",
                     "direccion": direccion.strip() if direccion else "",
                     "monto_estandar": 0,
-                    "monto_extras": precio_extra,
+                    "monto_extras": monto_extras_total,
                     "monto_desechables": 0,
-                    "monto_total": precio_extra,
+                    "monto_total": monto_extras_total,
                     "status": "PENDIENTE",
                     "created_at": datetime.now(timezone.utc).isoformat(),
                     "es_extra": True
                 }
+                comanda_id_extras = self.insert_data(comanda_extra, self.table_comandas, return_id=True)
+                if not comanda_id_extras:
+                    return {"ok": False, "error": "Error insertando comanda de extras"}
+                comandas_ids.append(comanda_id_extras)
 
-                comanda_id = self.insert_data(comanda_extra, self.table_comandas, return_id=True)
-
-                if not comanda_id:
-                    return {"ok": False, "error": f"Error insertando extra: {nombre_extra}"}
-
-                comandas_ids.append(comanda_id)
+            monto_extras_acumulado = 0.0
+            for extra in extras:
+                platillo_id = str(extra.get("platillo_id", "")).strip('"')
+                precio_extra = float(extra.get("precio", 0.0))
+                nombre_extra = extra.get("platillo_nombre", "")
 
                 self.insert_data(
-                    {"comanda_id": comanda_id, "platillo_id": platillo_id},
+                    {"comanda_id": comanda_id_extras, "platillo_id": platillo_id},
                     self.table_desglose
                 )
                 self._decrementar_stock(platillo_id)
+                monto_extras_acumulado += precio_extra
 
-                print(f"✅ Extra creado: {comanda_id} | {nombre_extra} | ${precio_extra}")
+                print(f"✅ Extra agregado a comanda {comanda_id_extras}: {nombre_extra} | ${precio_extra}")
+                write_log(uid or "system", "extra_agregado_manual", f"Extra '{nombre_extra}' agregado a comanda {comanda_id_extras} para {cliente_nombre}.", nivel="info")
 
+            if extras and comidas and comandas_ids:
+                monto_original = comanda_montos.get(comanda_id_extras, 0)
+                self.update_data(
+                    table=self.table_comandas,
+                    data={
+                        "monto_extras": monto_extras_acumulado,
+                        "monto_total": monto_original + monto_extras_acumulado
+                    },
+                    filters={"id": comanda_id_extras}
+                )
             print(f"📦 Orden manual completa | grupo: {pedido_grupo} | {len(comandas_ids)} comandas")
             write_log(uid or "system", "orden_manual_creada", f"Orden manual creada para {cliente_nombre} con pedido_grupo: {pedido_grupo} y {len(comandas_ids)} comandas.", nivel="info")
-
+            
             return {
                 "ok": True,
                 "pedido_grupo": pedido_grupo,

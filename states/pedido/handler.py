@@ -274,6 +274,51 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
         campos_menu_actuales = [c for c in campos_platillos_validos if c != 'a_la_carta']
         orden_redis = get_orden_temporal(telefono)
 
+        # ═══════════════ AQUÍ EMPIEZA LA NUEVA IMPLEMENTACION ═══════════════
+
+        from states.generic import detectar_extra_que_es_platillo_faltante, agregar_platillo_a_orden_existente
+        tool_input, asignaciones_directas = detectar_extra_que_es_platillo_faltante(
+            tool_input, orden_redis, menu_data, campos_menu_actuales, supabase_client
+        )
+
+        content_asignaciones = []
+        if asignaciones_directas and orden_redis:
+            for orden_numero, tiempo_match, platillo in asignaciones_directas:
+                orden_redis, content_asignacion = agregar_platillo_a_orden_existente(
+                    orden_redis, orden_numero, tiempo_match, platillo,
+                    config, supabase_client, campos_platillos_validos
+                )
+                if content_asignacion:
+                    content_asignaciones.append(content_asignacion)
+            save_orden_temporal(telefono, orden_redis)
+            session_context["orden"] = orden_redis
+            logger.info("EXTRA_REASIGNADO_A_TIEMPO_FALTANTE | telefono: %s | asignaciones=%s", telefono, asignaciones_directas)
+
+        if asignaciones_directas and not tiene_contenido(tool_input, campos_platillos_validos):
+            session_context.setdefault("flow_state", {})["esperando_confirmacion"] = True
+            faltantes = que_falta(orden_redis, campos_platillos_validos)
+            ultimo_content = content_asignaciones[-1] if content_asignaciones else {}
+            ultimo_content["tiempos_faltantes"] = faltantes
+            ultimo_content["resumen_completo"] = [
+                {
+                    "comida": i + 1,
+                    "platillos": [
+                        p for campo, vals in o.get("platillos", {}).items()
+                        for p in (vals if isinstance(vals, list) else [vals])
+                        if p and p not in empty_placeholders
+                    ],
+                    "monto": o.get("costos", {}).get("monto_total", 0),
+                }
+                for i, o in enumerate(orden_redis.get("ordenes", []))
+            ]
+            ultimo_content["monto_total"] = orden_redis.get("monto_total_general", 0)
+            if config.get('cobro_desechables'):
+                ultimo_content["aviso_desechables"] = f"Se cobran desechables por ${config.get('precio_desechables', 0)} por comida"
+            respuesta = llamar_llm(PROMPT_ATTENTION + str(ultimo_content), messages, data["body"])
+            write_log(telefono, "extra_reasignado_respuesta", f"Respuesta generada tras reasignar extra a tiempo faltante: {respuesta}")
+            return {"answer": respuesta, "nuevo_estado": "pedido", "session_context": session_context}
+        # ═══════════════ AQUÍ TERMINA LO NUEVO ═══════════════
+
         # Validar a_la_carta contra el menú del día
         a_la_carta_raw = tool_input.get('a_la_carta')
         if isinstance(a_la_carta_raw, list):
@@ -329,26 +374,27 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
             # Normalizar: 1 platillo solo → extra_1
             lista_tool_inputs = normalizar_a_extra_si_unico(tool_inputs=lista_tool_inputs, campos_menu_actuales=campos_menu_actuales, campos_platillos_validos=campos_platillos_validos)
 
+            # ESTA CONDICION ERA LA DE REDIS PARA ELIMINAR DEDUPS , PERO AHORA SE HACE EN OTRO LADO 
             # Detectar platillos que ya existen en orden_redis y reasignarlos a extra_1
-            if orden_redis:
-                platillos_existentes = {
-                    supabase_client.unaccent_simple(p.lower())
-                    for o in orden_redis.get("ordenes", [])
-                    for vals in o.get("platillos", {}).values()
-                    for p in (vals if isinstance(vals, list) else [vals])
-                    if p and p not in empty_placeholders
-                }
-                for ti in lista_tool_inputs:
-                    for campo in campos_menu_actuales:
-                        val = ti.get(campo)
-                        if val and val not in empty_placeholders:
-                            if supabase_client.unaccent_simple(val.lower()) in platillos_existentes:
-                                # Ya existe — reasignar a extra_1
-                                for ek in ['extra_1', 'extra_2', 'extra_3']:
-                                    if ti.get(ek) in empty_placeholders:
-                                        ti[ek] = val
-                                        ti[campo] = None
-                                        break
+            # if orden_redis:
+            #     platillos_existentes = {
+            #         supabase_client.unaccent_simple(p.lower())
+            #         for o in orden_redis.get("ordenes", [])
+            #         for vals in o.get("platillos", {}).values()
+            #         for p in (vals if isinstance(vals, list) else [vals])
+            #         if p and p not in empty_placeholders
+            #     }
+            #     for ti in lista_tool_inputs:
+            #         for campo in campos_menu_actuales:
+            #             val = ti.get(campo)
+            #             if val and val not in empty_placeholders:
+            #                 if supabase_client.unaccent_simple(val.lower()) in platillos_existentes:
+            #                     # Ya existe — reasignar a extra_1
+            #                     for ek in ['extra_1', 'extra_2', 'extra_3']:
+            #                         if ti.get(ek) in empty_placeholders:
+            #                             ti[ek] = val
+            #                             ti[campo] = None
+            #                             break
             
             # Si ya existe una orden rehidratada en Redis (viene de handler_terminar_pedido),
             # preservar pedido_grupo y comanda_id único; vaciar ordenes para acumular desde cero.
