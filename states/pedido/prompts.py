@@ -330,7 +330,6 @@ Cliente dice "ya no quiero el arroz":
 {{"Sopa o consomé": null, "Arroz o pasta": ["Arroz"], "Plato fuerte": null, "extra_1": null, "extra_2": null, "extra_3": null, "a_la_carta": null}}
 """
 
-
 def PROMPT_EXTRAER_MODIFICACION(menu_data: dict) -> str:
     menu = menu_data.get('menu', {})
     menu_str = ""
@@ -344,27 +343,71 @@ Tu ÚNICO objetivo es extraer los intercambios de platillos que el cliente quier
 
 El menú disponible es:
 {menu_str}
-Debes devolver UN ÚNICO objeto JSON con una lista de cambios. Cada cambio es una lista de dos elementos: [platillo_original, platillo_nuevo].
+Debes devolver UN ÚNICO objeto JSON con una lista de cambios. Cada cambio es una lista de TRES elementos: [numero_comida, platillo_original, platillo_nuevo].
 
 Campo:
-- cambios: lista de pares [platillo_original, platillo_nuevo]
+- cambios: lista de listas [numero_comida, platillo_original, platillo_nuevo]
 
 ---
 
 REGLAS ESTRICTAS:
 - Devuelve ÚNICAMENTE el objeto JSON, sin texto adicional, sin markdown, sin explicaciones
-- Cada cambio es una lista de exactamente 2 elementos
-- El primer elemento es el platillo que el cliente quiere quitar
-- El segundo elemento es el platillo que el cliente quiere en su lugar
+- Cada cambio es una lista de exactamente 3 elementos
+- El primer elemento es el número de comida (1, 2, 3...) SI el cliente lo menciona explícitamente
+  ("en la comida 2", "de la segunda comida", "la primera", "para la 2"). Si el cliente NO
+  especifica a qué comida pertenece el cambio, usa null.
+- El segundo elemento es el platillo que el cliente quiere quitar
+- El tercer elemento es el platillo que el cliente quiere en su lugar
 - El JSON debe ser válido y parseable directamente con json.loads()
 - NORMALIZA los platillos al nombre EXACTO del menú aunque el usuario escriba abreviado,
   con typo, o de forma incompleta.
 
 EJEMPLOS DE RESPUESTA:
 
-Un intercambio:
-{{"cambios": [["Enchiladas verdes", "Tacos dorados"]]}}
+Un intercambio sin especificar comida:
+{{"cambios": [[null, "Enchiladas verdes", "Tacos dorados"]]}}
 
-Dos intercambios:
-{{"cambios": [["Enchiladas verdes", "Tacos dorados"], ["Sopa aguada", "Consomé de pollo"]]}}
+Un intercambio en una comida específica:
+{{"cambios": [[2, "Flan Napolitano", "Gelatina de Limón"]]}}
+
+Dos intercambios, uno con comida específica y otro sin especificar:
+{{"cambios": [[1, "Sopa aguada", "Consomé de pollo"], [null, "Agua de jamaica", "Agua de horchata"]]}}
 """
+
+# def PROMPT_EXTRAER_MODIFICACION(menu_data: dict) -> str:
+#     menu = menu_data.get('menu', {})
+#     menu_str = ""
+#     for tiempo, platillos in menu.items():
+#         nombres = [p['platillo'] for p in platillos]
+#         menu_str += f"- {tiempo}: {', '.join(nombres)}\n"
+#     return f"""
+# Eres un extractor de datos para una cocina económica llamada {business_name}.
+
+# Tu ÚNICO objetivo es extraer los intercambios de platillos que el cliente quiere hacer en su orden del último mensaje y devolverlos en JSON válido.
+
+# El menú disponible es:
+# {menu_str}
+# Debes devolver UN ÚNICO objeto JSON con una lista de cambios. Cada cambio es una lista de dos elementos: [platillo_original, platillo_nuevo].
+
+# Campo:
+# - cambios: lista de pares [platillo_original, platillo_nuevo]
+
+# ---
+
+# REGLAS ESTRICTAS:
+# - Devuelve ÚNICAMENTE el objeto JSON, sin texto adicional, sin markdown, sin explicaciones
+# - Cada cambio es una lista de exactamente 2 elementos
+# - El primer elemento es el platillo que el cliente quiere quitar
+# - El segundo elemento es el platillo que el cliente quiere en su lugar
+# - El JSON debe ser válido y parseable directamente con json.loads()
+# - NORMALIZA los platillos al nombre EXACTO del menú aunque el usuario escriba abreviado,
+#   con typo, o de forma incompleta.
+
+# EJEMPLOS DE RESPUESTA:
+
+# Un intercambio:
+# {{"cambios": [["Enchiladas verdes", "Tacos dorados"]]}}
+
+# Dos intercambios:
+# {{"cambios": [["Enchiladas verdes", "Tacos dorados"], ["Sopa aguada", "Consomé de pollo"]]}}
+# """

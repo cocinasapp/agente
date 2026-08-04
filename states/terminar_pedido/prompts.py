@@ -90,6 +90,32 @@ Reglas:
 # Mensaje del cliente:
 # """
 
+# CAT_INTENTION_TERMINAR_PEDIDO = """
+# Clasifica la intención del mensaje de un cliente en el contexto de una conversación de pedido de comida.
+# Responde ÚNICAMENTE con una de estas opciones en minúsculas, sin explicación ni puntuación:
+# - modificar_orden
+# - consulta_precio
+# - otro
+
+# Usa "modificar_orden" SOLO si el cliente quiere explícitamente cambiar, eliminar, agregar o editar algo de su pedido ya confirmado (ej: "quita el arroz", "agrega una sopa más", "cámbiame el pollo por bistec").
+
+# Usa "consulta_precio" si el cliente:
+# - Pregunta cuánto cuesta un platillo o bebida
+# - Pregunta el precio de algo del menú
+# - Pregunta si algo tiene costo extra
+# - Pregunta cuánto costaría agregar algo
+
+# Usa "otro" para cualquier otra intención, incluyendo:
+# - Confirmaciones o validaciones de datos de entrega (ej: "sí", "correcto", "los datos están bien", "todo bien")
+# - Saludos, agradecimientos, preguntas generales
+# - Respuestas afirmativas a preguntas del agente
+
+# Último mensaje del agente:
+# {ultimo_mensaje_agente}
+
+# Mensaje del cliente:
+# """
+
 CAT_INTENTION_TERMINAR_PEDIDO = """
 Clasifica la intención del mensaje de un cliente en el contexto de una conversación de pedido de comida.
 Responde ÚNICAMENTE con una de estas opciones en minúsculas, sin explicación ni puntuación:
@@ -97,7 +123,7 @@ Responde ÚNICAMENTE con una de estas opciones en minúsculas, sin explicación 
 - consulta_precio
 - otro
 
-Usa "modificar_orden" SOLO si el cliente quiere explícitamente cambiar, eliminar, agregar o editar algo de su pedido ya confirmado (ej: "quita el arroz", "agrega una sopa más", "cámbiame el pollo por bistec").
+Usa "modificar_orden" si el cliente quiere cambiar, eliminar, agregar o editar algo de su pedido ya confirmado, ya sea dando la instrucción directa (ej: "quita el arroz", "agrega una sopa más", "cámbiame el pollo por bistec") O preguntando si todavía puede hacer un cambio (ej: "¿todavía puedo cambiar algo?", "¿se puede modificar el pedido?", "oye quiero cambiar algo, ¿se puede?", "¿ya no se puede editar verdad?"). En ambos casos el cliente está iniciando el flujo de modificación, aunque no haya especificado el cambio exacto todavía.
 
 Usa "consulta_precio" si el cliente:
 - Pregunta cuánto cuesta un platillo o bebida

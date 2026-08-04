@@ -296,37 +296,140 @@ def persistir_pedido(
     )
 
     if comanda_id:
-        # UPDATE: comanda única ya existe en Supabase (viene de rehidratar_orden_desde_supabase)
-        ids_platillos = supabase_client.extraer_ids_platillos(todos_platillos, user_id=os.getenv('USER_ID'))
-        nombre_a_id = {
-            supabase_client.unaccent_simple(obj['platillo'].lower()): obj.get('id')
-            for obj in ids_platillos
-        }
-        nuevos_platillos_ids = [
-            nombre_a_id.get(supabase_client.unaccent_simple(nombre.lower()))
-            for nombre in todos_platillos
-            if nombre_a_id.get(supabase_client.unaccent_simple(nombre.lower()))
-        ]
-        resultado = supabase_client.actualizar_platillos_comanda(
-            comanda_id=comanda_id,
-            nuevos_platillos_ids=nuevos_platillos_ids,
-            nuevos_costos={
-                'monto_estandar': monto_estandar,
-                'monto_extras':   monto_extras,
-                'monto_desechables': monto_desech,
-                'monto_total':    monto_total
+        # UPDATE: puede haber varias comandas (una por comida) en el grupo.
+        # Cada orden se actualiza contra SU PROPIA comanda; las órdenes sin
+        # comanda_id (comida agregada durante la edición) se insertan nuevas;
+        # las comandas que existían en Supabase pero ya no aparecen en
+        # orden_temporal (comida eliminada durante la edición) se borran.
+
+        comandas_existentes = supabase_client.obtener_comandas_con_platillos(pedido_grupo)
+        comanda_ids_existentes = {c['comanda_id'] for c in comandas_existentes}
+        comanda_ids_conservados = set()
+
+        _info = info_entrega or {}
+        _metodo = _info.get('metodo_de_entrega') or 'local'
+        _tipo_entrega = 'domicilio' if 'domicilio' in _metodo.lower() else 'local'
+        _domicilio = _info.get('domicilio') or ''
+        _referencia = _info.get('referencia') or ''
+
+        for orden in orden_temporal["ordenes"]:
+            platillos_orden = []
+            for platillos_tiempo in orden['platillos'].values():
+                if platillos_tiempo and platillos_tiempo not in ['', '<UNKNOWN>']:
+                    if isinstance(platillos_tiempo, list):
+                        platillos_orden.extend(platillos_tiempo)
+                    else:
+                        platillos_orden.append(platillos_tiempo)
+
+            costos_orden = orden.get('costos', {})
+            comanda_id_orden = orden.get('comanda_id')
+
+            ids_platillos = supabase_client.extraer_ids_platillos(platillos_orden, user_id=os.getenv('USER_ID'))
+            nombre_a_id = {
+                supabase_client.unaccent_simple(obj['platillo'].lower()): obj.get('id')
+                for obj in ids_platillos
             }
-        )
-        if not resultado.get('success'):
-            logger.error(
-                "persistir_pedido: fallo al actualizar comanda | telefono: %s | comanda_id: %s",
-                telefono, comanda_id
-            )
-        supabase_client.update_data(
-            table=os.getenv('TLB_COMANDAS'),
-            data={'cliente_nombre': nombre_completo},
-            filters={'id': comanda_id}
-        )
+            nuevos_platillos_ids = [
+                nombre_a_id.get(supabase_client.unaccent_simple(nombre.lower()))
+                for nombre in platillos_orden
+                if nombre_a_id.get(supabase_client.unaccent_simple(nombre.lower()))
+            ]
+
+            if comanda_id_orden and comanda_id_orden in comanda_ids_existentes:
+                # Comanda ya existía — actualizar SOLO su desglose y costos
+                resultado = supabase_client.actualizar_platillos_comanda(
+                    comanda_id=comanda_id_orden,
+                    nuevos_platillos_ids=nuevos_platillos_ids,
+                    nuevos_costos={
+                        'monto_estandar': costos_orden.get('monto_estandar', 0),
+                        'monto_extras':   costos_orden.get('monto_extras', 0),
+                        'monto_desechables': costos_orden.get('monto_desechables', 0),
+                        'monto_total':    costos_orden.get('monto_total', 0)
+                    }
+                )
+                if not resultado.get('success'):
+                    logger.error(
+                        "persistir_pedido: fallo al actualizar comanda | telefono: %s | comanda_id: %s",
+                        telefono, comanda_id_orden
+                    )
+                supabase_client.update_data(
+                    table=os.getenv('TLB_COMANDAS'),
+                    data={'cliente_nombre': nombre_completo},
+                    filters={'id': comanda_id_orden}
+                )
+                comanda_ids_conservados.add(comanda_id_orden)
+            else:
+                # Comida nueva agregada durante la edición — insertar comanda nueva
+                comanda_nueva = {
+                    'user_id':          os.getenv('USER_ID'),
+                    'cliente_nombre':   nombre_completo,
+                    'pedido_grupo':     pedido_grupo,
+                    'monto_estandar':   costos_orden.get('monto_estandar', 0),
+                    'monto_extras':     costos_orden.get('monto_extras', 0),
+                    'monto_desechables': costos_orden.get('monto_desechables', 0),
+                    'monto_total':      costos_orden.get('monto_total', 0),
+                    'telefono_cliente': telefono,
+                    'es_extra':         False,
+                    'tipo_entrega':     _tipo_entrega,
+                    'direccion':        _domicilio,
+                    'referencia_1':     _referencia,
+                }
+                comanda_id_nueva = supabase_client.insert_data(comanda_nueva, os.getenv('TLB_COMANDAS'), return_id=True)
+                if not comanda_id_nueva:
+                    logger.error(
+                        "persistir_pedido: fallo al insertar comida nueva en edición | telefono: %s",
+                        telefono
+                    )
+                    continue
+                for platillo_id in nuevos_platillos_ids:
+                    supabase_client.insert_data(
+                        {'comanda_id': comanda_id_nueva, 'platillo_id': platillo_id},
+                        os.getenv('TLB_DESGLOSE')
+                    )
+                comanda_ids_conservados.add(comanda_id_nueva)
+
+        # Comandas que existían antes pero ya no están en orden_temporal → se eliminaron en la edición
+        comanda_ids_a_eliminar = comanda_ids_existentes - comanda_ids_conservados
+        for comanda_id_borrar in comanda_ids_a_eliminar:
+            resultado_borrado = supabase_client.eliminar_comanda(comanda_id_borrar)
+            if not resultado_borrado.get('success'):
+                logger.error(
+                    "persistir_pedido: fallo al eliminar comanda huérfana tras edición | telefono: %s | comanda_id: %s",
+                    telefono, comanda_id_borrar
+                )
+
+    # if comanda_id:
+    #     # UPDATE: comanda única ya existe en Supabase (viene de rehidratar_orden_desde_supabase)
+    #     ids_platillos = supabase_client.extraer_ids_platillos(todos_platillos, user_id=os.getenv('USER_ID'))
+    #     nombre_a_id = {
+    #         supabase_client.unaccent_simple(obj['platillo'].lower()): obj.get('id')
+    #         for obj in ids_platillos
+    #     }
+    #     nuevos_platillos_ids = [
+    #         nombre_a_id.get(supabase_client.unaccent_simple(nombre.lower()))
+    #         for nombre in todos_platillos
+    #         if nombre_a_id.get(supabase_client.unaccent_simple(nombre.lower()))
+    #     ]
+    #     resultado = supabase_client.actualizar_platillos_comanda(
+    #         comanda_id=comanda_id,
+    #         nuevos_platillos_ids=nuevos_platillos_ids,
+    #         nuevos_costos={
+    #             'monto_estandar': monto_estandar,
+    #             'monto_extras':   monto_extras,
+    #             'monto_desechables': monto_desech,
+    #             'monto_total':    monto_total
+    #         }
+    #     )
+    #     if not resultado.get('success'):
+    #         logger.error(
+    #             "persistir_pedido: fallo al actualizar comanda | telefono: %s | comanda_id: %s",
+    #             telefono, comanda_id
+    #         )
+    #     supabase_client.update_data(
+    #         table=os.getenv('TLB_COMANDAS'),
+    #         data={'cliente_nombre': nombre_completo},
+    #         filters={'id': comanda_id}
+    #     )
     else:
         # INSERT: una comanda por cada orden (comida) del grupo
         _info = info_entrega or {}
@@ -757,7 +860,7 @@ def reemplazar_platillos_en_orden(orden_temporal, cambios, campos_platillos_vali
 
     # Lookup inverso: nombre platillo → tiempo
     # Necesario para saber a qué tiempo pertenece el platillo nuevo
-    from db import DBCA
+    # from db import DBCA
     menu_data = supabase_client.consultar_menu_del_dia()
     platillo_a_tiempo = {}
     for tiempo, platillos in menu_data.get('menu', {}).items():
@@ -765,7 +868,9 @@ def reemplazar_platillos_en_orden(orden_temporal, cambios, campos_platillos_vali
             platillo_a_tiempo[p['platillo'].lower()] = tiempo
 
     # Convertir orden_temporal a lista de dicts {campo: platillo} para manipulación
+    # Convertir orden_temporal a lista de dicts {campo: platillo} para manipulación
     ordenes = []
+    ordenes_numeros = []
     for orden in orden_temporal.get("ordenes", []):
         od = {}
         for campo, valores in orden.get("platillos", {}).items():
@@ -778,17 +883,39 @@ def reemplazar_platillos_en_orden(orden_temporal, cambios, campos_platillos_vali
             for item in items:
                 od[campo] = item  # una orden tiene un platillo por campo
         ordenes.append(od)
+        ordenes_numeros.append(orden.get("orden_numero"))
+    # ordenes = []
+    # for orden in orden_temporal.get("ordenes", []):
+    #     od = {}
+    #     for campo, valores in orden.get("platillos", {}).items():
+    #         if isinstance(valores, list):
+    #             items = [v for v in valores if v and v not in empty_placeholders]
+    #         elif valores and valores not in empty_placeholders:
+    #             items = [valores]
+    #         else:
+    #             items = []
+    #         for item in items:
+    #             od[campo] = item  # una orden tiene un platillo por campo
+    #     ordenes.append(od)
     import logging
     logging.getLogger(__name__).info("ORDENES_PLANAS | %s", ordenes)
 
     # Aplicar cada cambio [original, nuevo] a la primera orden que contenga original
+    # Aplicar cada cambio [comida_numero, original, nuevo]. Si comida_numero viene
+    # especificado, el cambio SOLO se busca en esa comida — nunca en otra.
     for cambio in cambios:
-        if not isinstance(cambio, list) or len(cambio) != 2:
+        if not isinstance(cambio, list) or len(cambio) != 3:
             continue
-        original, nuevo = cambio[0], cambio[1]
+        comida_numero, original, nuevo = cambio[0], cambio[1], cambio[2]
         tiempo_nuevo = platillo_a_tiempo.get(nuevo.lower())
 
-        for od in ordenes:
+        if comida_numero is not None:
+            indices_a_buscar = [i for i, num in enumerate(ordenes_numeros) if num == comida_numero]
+        else:
+            indices_a_buscar = range(len(ordenes))
+
+        for i in indices_a_buscar:
+            od = ordenes[i]
             # Buscar el campo que contiene el platillo original
             campo_original = next(
                 (campo for campo, platillo in od.items() if platillo.lower() == original.lower()),
@@ -807,7 +934,33 @@ def reemplazar_platillos_en_orden(orden_temporal, cambios, campos_platillos_vali
                     if k not in od:
                         od[k] = nuevo
                         break
-            break  # solo la primera orden que tenga el original
+            break  # solo la primera comida (dentro de las candidatas) que tenga el original
+    # for cambio in cambios:
+    #     if not isinstance(cambio, list) or len(cambio) != 2:
+    #         continue
+    #     original, nuevo = cambio[0], cambio[1]
+    #     tiempo_nuevo = platillo_a_tiempo.get(nuevo.lower())
+
+    #     for od in ordenes:
+    #         # Buscar el campo que contiene el platillo original
+    #         campo_original = next(
+    #             (campo for campo, platillo in od.items() if platillo.lower() == original.lower()),
+    #             None
+    #         )
+    #         if campo_original is None:
+    #             continue
+
+    #         # Forzar reemplazo: eliminar original, insertar nuevo en su tiempo correcto
+    #         del od[campo_original]
+    #         if tiempo_nuevo:
+    #             od[tiempo_nuevo] = nuevo
+    #         else:
+    #             # No está en menú → es extra
+    #             for k in extras_keys:
+    #                 if k not in od:
+    #                     od[k] = nuevo
+    #                     break
+    #         break  # solo la primera orden que tenga el original
 
     # Resolver colisiones: si una orden tiene dos platillos del mismo tiempo, separar
     ordenes_limpias = []

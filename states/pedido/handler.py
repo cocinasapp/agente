@@ -97,10 +97,25 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
             write_log(telefono, "json_invalido_edicion", f"JSON inválido en extracción de edición: {raw} | error: {e}")
             return {"answer": respuesta, "nuevo_estado": "pedido", "session_context": session_context}
 
+        # orden_temporal = get_orden_temporal(telefono)
+        # if not orden_temporal:
+        #     respuesta = llamar_llm(PROMPT_ATTENTION + str({"status": "sin_orden_activa"}), messages, data["body"])
+        #     write_log(telefono, "sin_orden_activa", "No hay orden activa en pedido")
+        #     return {"answer": respuesta, "nuevo_estado": "pedido", "session_context": session_context}
+
+        # orden_temporal, content = eliminar_platillos_de_orden(
+        #     orden_temporal, tool_input_edicion, campos_platillos_validos, supabase_client, config
+        # )
         orden_temporal = get_orden_temporal(telefono)
         if not orden_temporal:
             respuesta = llamar_llm(PROMPT_ATTENTION + str({"status": "sin_orden_activa"}), messages, data["body"])
             write_log(telefono, "sin_orden_activa", "No hay orden activa en pedido")
+            return {"answer": respuesta, "nuevo_estado": "pedido", "session_context": session_context}
+
+        if not tiene_contenido(tool_input_edicion, campos_platillos_validos):
+            logger.warning("Sin platillos a eliminar detectados en mensaje de edición | telefono: %s", telefono)
+            write_log(telefono, "sin_platillos_a_eliminar", "No se detectaron platillos a eliminar en el mensaje", nivel="warning")
+            respuesta = llamar_llm(PROMPT_ATTENTION + str({"status": "sin_platillos_a_eliminar"}), messages, data["body"])
             return {"answer": respuesta, "nuevo_estado": "pedido", "session_context": session_context}
 
         orden_temporal, content = eliminar_platillos_de_orden(
@@ -154,9 +169,23 @@ def handle_pedido(messages, data, telefono, session_context, supabase_client=sup
                     tool_input_modificacion["cambios"],
                     json.dumps([o.get("platillos") for o in orden_temporal.get("ordenes", [])], ensure_ascii=False))
 
+        if not tool_input_modificacion["cambios"]:
+            logger.warning("Sin cambios detectados en mensaje de modificación | telefono: %s", telefono)
+            write_log(telefono, "sin_cambios_detectados", "No se detectaron cambios de platillo en el mensaje", nivel="warning")
+            respuesta = llamar_llm(PROMPT_ATTENTION + str({"status": "sin_cambios_detectados"}), messages, data["body"])
+            return {"answer": respuesta, "nuevo_estado": "pedido", "session_context": session_context}
+
         orden_temporal, content = reemplazar_platillos_en_orden(
             orden_temporal, tool_input_modificacion["cambios"], campos_platillos_validos, supabase_client, config
         )
+
+        # logger.info("ANTES_REEMPLAZAR | cambios=%s | ordenes=%s", 
+        #             tool_input_modificacion["cambios"],
+        #             json.dumps([o.get("platillos") for o in orden_temporal.get("ordenes", [])], ensure_ascii=False))
+
+        # orden_temporal, content = reemplazar_platillos_en_orden(
+        #     orden_temporal, tool_input_modificacion["cambios"], campos_platillos_validos, supabase_client, config
+        # )
         save_orden_temporal(telefono, orden_temporal)
         session_context["orden"] = orden_temporal
 
