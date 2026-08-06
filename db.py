@@ -1052,7 +1052,7 @@ if __name__=='__main__':
     # menu_del_dia=supabase_class.consultar_menu_del_dia(user_id=USER_ID)
     # supabase_class.obtener_pedido_reciente_usuario(telefono='4090296813')
 
-    breakpoint()
+    # breakpoint()
     pedido = supabase_class.obtener_pedido_reciente_usuario(telefono='8866002461')
     pedido_grupo = pedido["pedido_grupo"]
     comandas = supabase_class.obtener_comandas_con_platillos(pedido_grupo)
@@ -1076,4 +1076,4 @@ if __name__=='__main__':
         .order("created_at", desc=True) \
         .limit(1) \
         .execute()
-    breakpoint()
+    # breakpoint()
